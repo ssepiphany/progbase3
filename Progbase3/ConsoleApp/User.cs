@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public class User
 {
@@ -6,8 +7,5 @@ public class User
     public string login;
     public string fullname;
     public DateTime createdAt;
-    // public int reviewsNumber;
-    // public float averageScore;
-    // public Review highestScoreReview;
-    // public Review lowestScoreReview;
+    public List<Review> reviews;
 }

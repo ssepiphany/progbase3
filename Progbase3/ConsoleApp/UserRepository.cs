@@ -45,10 +45,40 @@ public class UserRepository
         return list ;  
     }
 
+    public User GetByReviewId(int id)
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM users CROSS JOIN reviews
+            WHERE users.id = reviews.movieId AND reviews.id = $id";
+        command.Parameters.AddWithValue("$id" , id) ; 
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        if ( reader.Read())
+        {
+            User user = ReadUser(reader) ; 
+            reader.Close() ; 
+            return user ;
+        } 
+        else
+        {
+            reader.Close() ; 
+            return null; 
+        } 
+    }
+
     public int DeleteById(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText = @"DELETE FROM users WHERE id = $id" ; 
+        command.Parameters.AddWithValue("$id" , id) ; 
+        int res = command.ExecuteNonQuery() ; 
+        return res ; 
+    }
+
+    public int DeleteByReviewId(int id)
+    {
+        SqliteCommand command = connection.CreateCommand() ;  
+        command.CommandText = @"DELETE * FROM users CROSS JOIN reviews
+            WHERE users.id = reviews.userId AND reviews.id = $id";
         command.Parameters.AddWithValue("$id" , id) ; 
         int res = command.ExecuteNonQuery() ; 
         return res ; 
@@ -89,5 +119,13 @@ public class UserRepository
         user.fullname = reader.GetString(2);  
         user.createdAt = DateTime.Parse(reader.GetString(3));  
         return user ;
+    }
+
+    public long GetCount()
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM users"; 
+        long count = (long)command.ExecuteScalar();
+        return count;
     }
 }

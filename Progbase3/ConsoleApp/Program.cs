@@ -17,7 +17,6 @@ namespace ConsoleApp
                 // generate {movie} {5}
                 UserInterface.ProcessGenerate(command, connection);
             }
-            
             connection.Close();
         }
     }

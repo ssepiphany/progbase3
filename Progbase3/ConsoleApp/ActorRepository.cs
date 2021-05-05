@@ -44,11 +44,33 @@ public class ActorRepository
         return list ;  
     }
 
-    public int DeleteById(int id )
+    public List<Actor> GetByMovieId(int id)
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM actors, movies, movieActors
+            WHERE movieActors.movieId = movies.id
+            AND movieActors.actorId = actors.Id
+            AND movies.id = $id"; 
+        command.Parameters.AddWithValue("$id" , id); 
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        List<Actor> list = new List<Actor>() ; 
+        while(reader.Read())
+        {
+            Actor actor = ReadActor(reader) ;  
+            list.Add(actor); 
+        }
+        reader.Close() ; 
+        return list ;  
+    }
+
+    public int DeleteByMovieId(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
-        command.CommandText = @"DELETE FROM actors WHERE id = $id" ; 
-        command.Parameters.AddWithValue("$id" , id ) ; 
+        command.CommandText = @"DELETE * FROM actors, movies, movieActors
+            WHERE movieActors.movieId = movies.id 
+            AND movieActors.actorId = actors.Id
+            AND movies.id = $id";  
+        command.Parameters.AddWithValue("$id" , id ); 
         int res = command.ExecuteNonQuery() ; 
         return res ; 
     }
@@ -75,6 +97,14 @@ public class ActorRepository
         command.Parameters.AddWithValue("$id", actor.id); 
         int res = command.ExecuteNonQuery() ; 
         return res == 1;
+    }
+
+    public long GetCount()
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM actors"; 
+        long count = (long)command.ExecuteScalar();
+        return count;
     }
 
     private Actor ReadActor(SqliteDataReader reader)
