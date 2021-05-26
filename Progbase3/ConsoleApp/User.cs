@@ -8,4 +8,10 @@ public class User
     public string fullname;
     public DateTime createdAt;
     public List<Review> reviews;
+
+    public override string ToString()
+    {
+        return $"[{this.id}] {this.fullname}: ({this.login})";
+    }
+
 }

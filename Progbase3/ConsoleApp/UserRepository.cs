@@ -30,6 +30,33 @@ public class UserRepository
         } 
     }
 
+    public int GetTotalPages(int pageLength)
+    {
+        return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
+    }
+
+    public List<User> GetPage(int pageNum, int pageLength)
+    {
+        if(pageNum < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<User> page = new List<User>();
+        SqliteCommand command = connection.CreateCommand() ; 
+        command.CommandText = @"SELECT * FROM users LIMIT $pageLength OFFSET $offset" ; 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            User user = ReadUser(reader) ; 
+            page.Add(user); 
+        }
+        reader.Close() ; 
+        return page ; 
+    }
+
     public List<User> GetAll()
     {
         SqliteCommand command = connection.CreateCommand(); 
@@ -65,13 +92,13 @@ public class UserRepository
         } 
     }
 
-    public int DeleteById(int id)
+    public bool DeleteById(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText = @"DELETE FROM users WHERE id = $id" ; 
         command.Parameters.AddWithValue("$id" , id) ; 
         int res = command.ExecuteNonQuery() ; 
-        return res ; 
+        return (res == 1) ; 
     }
 
     public int DeleteByReviewId(int id)
@@ -103,7 +130,7 @@ public class UserRepository
     public bool Update(int id, User user)
     {
         SqliteCommand command = connection.CreateCommand() ; 
-        command.CommandText = @"UPDATE users SET login = $login , fullname = $fullname ,  WHERE id = $id" ; 
+        command.CommandText = @"UPDATE users SET login = $login , fullname = $fullname WHERE id = $id" ; 
         command.Parameters.AddWithValue("$login" , user.login) ; 
         command.Parameters.AddWithValue("$fullname" , user.fullname) ; 
         command.Parameters.AddWithValue("$id" , user.id) ; 

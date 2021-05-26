@@ -6,6 +6,8 @@ static class Generator
 {
     public static List<Actor> GenerateActors(int num)
     {
+        Random random = new Random();
+        string[] genders = new string[] {"male", "female"};
         string filePath = "C:/Users/Sofia/projects/progbase3/data/generator/IMDB names.csv";
         List<Actor> actors = new List<Actor>(); 
         StreamReader sr = new StreamReader(filePath) ; 
@@ -28,6 +30,8 @@ static class Generator
             }
             Actor actor = new Actor(); 
             actor.fullname = values[1] ;  
+            actor.age = random.Next(15, 81);
+            actor.gender = genders[random.Next(1,3)];
             actors.Add(actor) ; 
         }
         sr.Close() ; 
@@ -36,6 +40,8 @@ static class Generator
 
     public static List<Movie> GenerateMovies(int num)
     {
+        Random random = new Random();
+        string[] genres = new string[] {"comedy", "action", "drama", "horror", "fantasy", "other"};
         string filePath = "C:/Users/Sofia/projects/progbase3/data/generator/IMDB movies.csv";
         List<Movie> movies = new List<Movie>();
         StreamReader sr = new StreamReader(filePath) ; 
@@ -58,6 +64,8 @@ static class Generator
             }
             Movie movie = new Movie(); 
             movie.title = values[1];  
+            movie.genre = genres[random.Next(0,genres.Length)];
+            // movie.starringJackieChan = random.Next(1, 100) > 60;
             if(!DateTime.TryParse(values[4], out movie.releaseDate))
             {
                 i--;
@@ -71,15 +79,19 @@ static class Generator
 
     public static List<Review> GenerateReviews(int num, UserRepository userRepo, MovieRepository movieRepo)
     {
+        // string filePath = "C:/Users/Sofia/projects/progbase3/data/generator/IMDB Dataset.csv";
         List<Review> reviews = new List<Review>();
         Dictionary<int, List<int>> connection = new Dictionary<int, List<int>>();
         if(userRepo.GetCount() == 0) GenerateUsers(num/2);
         if(movieRepo.GetCount() == 0) GenerateMovies(num/2);
+        RandomDateTime date = new RandomDateTime();
         Random random = new Random();
         for(int i = 0; i < num; i++)
         {
             Review review = new Review();
-            review.value = Math.Round(random.Next(1,10) + random.NextDouble(),1);
+            review.value = random.Next(1,11);
+            review.createdAt = date.Next();
+            review.imported = false;
             CreateConnectionInReviews(ref review, userRepo.GetCount(), movieRepo.GetCount(), connection);
             reviews.Add(review);
         }
@@ -162,5 +174,24 @@ static class Generator
             }
         }
         moviesRepo.ConnectWithActors(movieId, actorId);
+    }
+
+    class RandomDateTime
+    {
+        DateTime start;
+        Random gen;
+        int range;
+
+        public RandomDateTime()
+        {
+            start = new DateTime(1995, 1, 1);
+            gen = new Random();
+            range = (DateTime.Today - start).Days;
+        }
+
+        public DateTime Next()
+        {
+            return start.AddDays(gen.Next(range)).AddHours(gen.Next(0,24)).AddMinutes(gen.Next(0,60)).AddSeconds(gen.Next(0,60));
+        }
     }
 }

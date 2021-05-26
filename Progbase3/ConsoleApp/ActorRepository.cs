@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using System.Collections.Generic;
+using System;
 
 public class ActorRepository
 {
@@ -27,6 +28,33 @@ public class ActorRepository
             reader.Close() ; 
             return null; 
         } 
+    }
+
+    public int GetTotalPages(int pageLength)
+    {
+        return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
+    }
+
+    public List<Actor> GetPage(int pageNum, int pageLength)
+    {
+        if(pageNum < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<Actor> page = new List<Actor>();
+        SqliteCommand command = connection.CreateCommand() ; 
+        command.CommandText = @"SELECT * FROM actors LIMIT $pageLength OFFSET $offset" ; 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            Actor actor = ReadActor(reader) ; 
+            page.Add(actor); 
+        }
+        reader.Close() ; 
+        return page ; 
     }
 
     public List<Actor> GetAll()
@@ -63,6 +91,15 @@ public class ActorRepository
         return list ;  
     }
 
+    public bool DeleteById(int id)
+    {
+        SqliteCommand command = connection.CreateCommand() ; 
+        command.CommandText = @"DELETE FROM actors WHERE id = $id" ; 
+        command.Parameters.AddWithValue("$id" , id) ; 
+        int res = command.ExecuteNonQuery() ; 
+        return res == 1;
+    }
+
     public int DeleteByMovieId(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
@@ -80,11 +117,13 @@ public class ActorRepository
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText =
         @"
-            INSERT INTO actors(fullname)
-            VALUES( $fullname) ; 
+            INSERT INTO actors(fullname, age, gender)
+            VALUES( $fullname, $age, $gender) ; 
             SELECT last_insert_rowid() ; 
         ";
         command.Parameters.AddWithValue("$fullname" , actor.fullname); 
+        command.Parameters.AddWithValue("$age" , actor.age); 
+        command.Parameters.AddWithValue("$gender" , actor.gender); 
         long newId = (long)command.ExecuteScalar() ;
         return (int)newId ; 
     }
@@ -92,9 +131,11 @@ public class ActorRepository
     public bool Update(int id, Actor actor)
     {
         SqliteCommand command = connection.CreateCommand() ; 
-        command.CommandText = @"UPDATE actors SET fullname = $fullname WHERE id = $id" ; 
+        command.CommandText = @"UPDATE actors SET fullname = $fullname, age = $age, gender = $gender WHERE id = $id" ; 
         command.Parameters.AddWithValue("$fullname", actor.fullname); 
-        command.Parameters.AddWithValue("$id", actor.id); 
+        command.Parameters.AddWithValue("$age" , actor.age); 
+        command.Parameters.AddWithValue("$gender" , actor.gender); 
+        command.Parameters.AddWithValue("$id", id); 
         int res = command.ExecuteNonQuery() ; 
         return res == 1;
     }
@@ -112,6 +153,8 @@ public class ActorRepository
         Actor actor =  new Actor() ; 
         actor.id = int.Parse(reader.GetString(0)) ; 
         actor.fullname = reader.GetString(1) ; 
+        actor.age = int.Parse(reader.GetString(2));
+        actor.gender = reader.GetString(3) ; 
         return actor ;
     }
 }

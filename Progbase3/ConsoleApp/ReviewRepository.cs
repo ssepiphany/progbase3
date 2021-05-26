@@ -30,6 +30,34 @@ public class ReviewRepository
         } 
     }
 
+    public List<Review> GetPage(int pageNum, int pageLength)
+    {
+        if(pageNum < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<Review> page = new List<Review>();
+        SqliteCommand command = connection.CreateCommand() ;
+        command.CommandText = @"SELECT * FROM reviews CROSS JOIN movies 
+            WHERE movies.id = reviews.movieId LIMIT $pageLength OFFSET $offset" ; 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            Review review = FillReviewWithMovies(reader); 
+            page.Add(review); 
+        }
+        reader.Close() ; 
+        return page ; 
+    }
+
+    public int GetTotalPages(int pageLength)
+    {
+        return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
+    }
+
     public List<Review> GetAll()
     {
         SqliteCommand command = connection.CreateCommand(); 
@@ -77,13 +105,13 @@ public class ReviewRepository
         return list ;  
     }
 
-    public int DeleteById(int id)
+    public bool DeleteById(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText = @"DELETE FROM reviews WHERE id = $id" ; 
         command.Parameters.AddWithValue("$id" , id) ; 
         int res = command.ExecuteNonQuery() ; 
-        return res ; 
+        return res == 1 ; 
     }
 
     public int DeleteAllByAuthorId(int id)
@@ -110,13 +138,15 @@ public class ReviewRepository
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText =
         @"
-            INSERT INTO reviews(value, movieId, userId)
-            VALUES($value, $movieId, $userId) ; 
+            INSERT INTO reviews(value, movieId, userId, createdAt, imported)
+            VALUES($value, $movieId, $userId, $createdAt, $imported); 
             SELECT last_insert_rowid() ; 
         ";
         command.Parameters.AddWithValue("$value" , review.value ) ; 
         command.Parameters.AddWithValue("$movieId", review.movieId); 
         command.Parameters.AddWithValue("$userId", review.userId) ; 
+        command.Parameters.AddWithValue("$createdAt", review.createdAt.ToString("o")) ;
+        command.Parameters.AddWithValue("$imported", review.imported.ToString()) ; 
         long newId = (long)command.ExecuteScalar() ;
         return (int)newId ; 
     }
@@ -124,11 +154,13 @@ public class ReviewRepository
     public bool Update(int id, Review review)
     {
         SqliteCommand command = connection.CreateCommand() ; 
-        command.CommandText = @"UPDATE reviews SET value = $value, movieId = $movieId, userId = $userId  WHERE id = $id" ; 
+        command.CommandText = @"UPDATE reviews SET value = $value, movieId = $movieId, userId = $userId, createdAt = $createdAt, imported = $imported WHERE id = $id" ; 
         command.Parameters.AddWithValue("$value", review.value); 
         command.Parameters.AddWithValue("$id", review.id) ; 
         command.Parameters.AddWithValue("$movieId", review.movieId); 
         command.Parameters.AddWithValue("$userId", review.userId) ; 
+        command.Parameters.AddWithValue("$createdAt", review.createdAt.ToString("o")) ; 
+        command.Parameters.AddWithValue("$imported", review.imported.ToString()) ; 
         int res = command.ExecuteNonQuery() ; 
         return res == 1;
     }
@@ -137,22 +169,34 @@ public class ReviewRepository
     {
         Review review =  new Review(); 
         review.id = int.Parse(reader.GetString(0)) ; 
-        review.value = double.Parse(reader.GetString(1)); 
+        review.value = int.Parse(reader.GetString(1)); 
         review.movieId = int.Parse(reader.GetString(2)) ; 
-        review.userId = int.Parse(reader.GetString(3)) ; 
+        review.userId = int.Parse(reader.GetString(3)) ;
+        review.createdAt = DateTime.Parse(reader.GetString(4)); 
+        review.imported = bool.Parse(reader.GetString(5));
         return review ;
+    }
+
+    public long GetCount()
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM reviews"; 
+        long count = (long)command.ExecuteScalar();
+        return count;
     }
 
     public User GetReviewsForExport(User user)
     {
         SqliteCommand command = connection.CreateCommand(); 
-        command.CommandText = @"SELECT * FROM reviews WHERE userId = $id"; 
+        command.CommandText = @"SELECT * FROM reviews CROSS JOIN movies
+            WHERE userId = $id AND movies.id = reviews.movieId";
+        // command.CommandText = @"SELECT * FROM reviews WHERE userId = $id"; 
         command.Parameters.AddWithValue("$id" , user.id); 
         SqliteDataReader reader = command.ExecuteReader() ; 
         List<Review> list = new List<Review>() ; 
         while(reader.Read())
         {
-            Review review = ReadReview(reader);  
+           Review review =  FillReviewWithMovies(reader);
             list.Add(review); 
         }
         reader.Close() ; 
@@ -160,30 +204,31 @@ public class ReviewRepository
         return user;
     }
 
-    public struct HistogramData
+    public Review FillReviewWithMovies(SqliteDataReader reader)
     {
-        public Dictionary<double, int> reviewFrequency;
-        public List<double> reviewValues;
+        Movie movie = new Movie();
+        movie.id = int.Parse(reader.GetString(6));
+        movie.title = reader.GetString(7);
+        movie.releaseDate = DateTime.Parse(reader.GetString(8));
+        movie.genre = reader.GetString(9);
+        // movie.starringJackieChan = bool.Parse(reader.GetString(9));
+        Review review = ReadReview(reader);  
+        review.movie = movie;
+        return review;
     }
 
-    public HistogramData GetReviewsForHistogram(User user)
+    public  Dictionary<double, int> GetReviewsForHistogram(User user)
     {
-        HistogramData hd = new HistogramData();
-        hd.reviewValues= new List<double>();
-        hd.reviewFrequency = new Dictionary<double, int>();
+        Dictionary<double, int> reviewFrequency = new Dictionary<double, int>();
         List<Review> list = GetAllByAuthorId(user.id);
         for( int i = 0; i < list.Count; i++)
         {
             Review current = list[i];
-            if (hd.reviewFrequency.TryAdd(current.value,1))
+            if (!reviewFrequency.TryAdd(current.value,1))
             {
-                hd.reviewValues.Add(current.value);
-            }
-            else
-            {
-                hd.reviewFrequency[list[i].value] += 1;
+                reviewFrequency[list[i].value] += 1;
             }
         }
-        return hd;
+        return reviewFrequency;
     }
 }

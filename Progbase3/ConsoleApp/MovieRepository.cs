@@ -65,16 +65,16 @@ public class MovieRepository
         } 
     }
 
-    public int DeleteById(int id)
+    public bool DeleteById(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText = @"DELETE FROM movies WHERE id = $id" ; 
         command.Parameters.AddWithValue("$id" , id) ; 
         int res = command.ExecuteNonQuery() ; 
-        return res ; 
+        return res == 1 ; 
     }
 
-    public List<Movie> GetByActorId(int id)
+    public List<Movie> GetByActorId(int id)   //SELECT * FROM movies CROSS JOIN movieActors, actors WHERE movies.id = movieActors.movieId AND actors.id = movieActors.actorId AND movieActors.actorId = 23
     {
         SqliteCommand command = connection.CreateCommand(); 
         command.CommandText = @"SELECT * FROM actors, movies, movieActors
@@ -120,22 +120,53 @@ public class MovieRepository
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText =
         @"
-            INSERT INTO movies(title, releaseDate)
-            VALUES( $title, $releaseDate) ; 
+            INSERT INTO movies(title, releaseDate, genre)
+            VALUES( $title, $releaseDate, $genre) ; 
             SELECT last_insert_rowid() ; 
         ";
-        command.Parameters.AddWithValue("$title" , movie.title ) ; 
-        command.Parameters.AddWithValue("$releaseDate" , movie.releaseDate.ToString("o") ) ; 
+        command.Parameters.AddWithValue("$title" , movie.title ); 
+        command.Parameters.AddWithValue("$releaseDate" , movie.releaseDate.ToString("o")); 
+        command.Parameters.AddWithValue("$genre" , movie.genre ); 
+        // command.Parameters.AddWithValue("$starringJackieChan" , movie.starringJackieChan.ToString()); 
         long newId = (long)command.ExecuteScalar() ;
         return (int)newId ; 
+    }
+
+    public int GetTotalPages(int pageLength)
+    {
+        return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
+    }
+
+    public List<Movie> GetPage(int pageNum, int pageLength)
+    {
+        if(pageNum < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<Movie> page = new List<Movie>();
+        SqliteCommand command = connection.CreateCommand() ; 
+        command.CommandText = @"SELECT * FROM movies LIMIT $pageLength OFFSET $offset" ; 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            Movie movie = ReadMovie(reader) ; 
+            page.Add(movie); 
+        }
+        reader.Close() ; 
+        return page ; 
     }
 
     public bool Update(int id, Movie movie)
     {
         SqliteCommand command = connection.CreateCommand() ; 
-        command.CommandText = @"UPDATE movies SET title = $title , releaseDate = $releaseDate WHERE id = $id" ; 
+        command.CommandText = @"UPDATE movies SET title = $title , releaseDate = $releaseDate, genre = $genre WHERE id = $id" ; 
         command.Parameters.AddWithValue("$title", movie.title); 
         command.Parameters.AddWithValue("$releaseDate", movie.releaseDate) ; 
+        command.Parameters.AddWithValue("$genre", movie.genre) ; 
+        // command.Parameters.AddWithValue("$starringJackieChan", movie.starringJackieChan) ; 
         command.Parameters.AddWithValue("$id", movie.id); 
         int res = command.ExecuteNonQuery() ; 
         return res == 1;
@@ -147,6 +178,8 @@ public class MovieRepository
         movie.id = int.Parse(reader.GetString(0)) ; 
         movie.title = reader.GetString(1) ;
         movie.releaseDate = DateTime.Parse(reader.GetString(2)) ;  
+        movie.genre = reader.GetString(3);
+        // movie.starringJackieChan = bool.Parse(reader.GetString(4));
         return movie ;
     }
 
