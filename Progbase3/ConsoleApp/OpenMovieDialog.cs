@@ -9,7 +9,13 @@ public class OpenMovieDialog : Dialog
     private TextField movieTitleInput;
     private TextField genreGroup;
     private TextField dateInput;
-    
+    private User currentUser;
+    private Button editBtn;
+    private Button deleteBtn;
+    private ActorRepository actorRepo;
+    private ReviewRepository reviewRepo;
+    private MovieRepository movieRepo;
+    private UserRepository userRepo;
     public OpenMovieDialog()
     {
         this.Title = "Open movie";
@@ -50,16 +56,31 @@ public class OpenMovieDialog : Dialog
         };
         this.Add(releaseDateLbl, dateInput);
 
-        Button editBtn = new Button(2, 22, "Edit");
+        editBtn = new Button(2, 22, "Edit");
         editBtn.Clicked += OnMovieEdit;
         this.Add(editBtn);
 
-        Button deleteBtn = new Button("Delete")
+        deleteBtn = new Button("Delete")
         {
             X = Pos.Right(editBtn) + 2, Y = Pos.Top(editBtn), 
         };
         deleteBtn.Clicked += OnMovieDelete;
         this.Add(deleteBtn);
+
+        Button castBtn = new Button()
+        {
+            X = 2, Y = Pos.Percent(55), Text = "View cast", Width = 13, 
+        };
+        castBtn.Clicked += OnViewCast;
+        this.Add(castBtn);
+
+        Button reviewsBtn = new Button()
+        {
+            X = 2, Y = Pos.Percent(65), Text = "View reviews", Width = 16, 
+        };
+        reviewsBtn.Clicked += OnViewReviews;
+        this.Add(reviewsBtn);
+
     }
 
     private void OnMovieDelete()
@@ -70,6 +91,39 @@ public class OpenMovieDialog : Dialog
             this.deleted = true;
             Application.RequestStop();
         }
+    }
+
+    public void SetRepositories(ActorRepository actorRepo, ReviewRepository reviewRepo, UserRepository userRepo, MovieRepository movieRepo)
+    {
+        this.actorRepo = actorRepo;
+        this.reviewRepo = reviewRepo;
+        this.userRepo = userRepo;
+        this.movieRepo = movieRepo;
+    }
+
+    private void OnViewCast()
+    {
+        OpenCastWindow win = new OpenCastWindow();
+        win.SetRepositories(actorRepo, movieRepo);
+        win.SetMovie(this.movie);
+        win.SetCurrentUser(this.currentUser);
+        Application.Run(win);
+    }
+
+    private void OnViewReviews()
+    {
+        OpenMovieReviewsWindow win = new OpenMovieReviewsWindow();
+        win.SetRepositories(movieRepo, userRepo, reviewRepo);
+        win.SetMovie(this.movie);
+        win.SetCurrentUser(this.currentUser);
+        Application.Run(win);
+    }
+
+    public void SetCurrentUser(User user)
+    {
+        this.currentUser = user;
+        this.editBtn.Visible = this.currentUser.moderator;
+        this.deleteBtn.Visible = this.currentUser.moderator;
     }
 
     private void OnMovieEdit()

@@ -11,13 +11,33 @@ public class UserRepository
         this.connection = connection;
     }
 
-    public User GetById(int id )
+    public User GetById(int id)
     {
         SqliteCommand command = connection.CreateCommand(); 
         command.CommandText = @"SELECT * FROM users WHERE id = $id";
         command.Parameters.AddWithValue("$id" , id) ; 
         SqliteDataReader reader = command.ExecuteReader() ; 
         if ( reader.Read())
+        {
+            User user = ReadUser(reader); 
+            // user.reviews = reviewRepo.GetAllByAuthorId(user.id);
+            reader.Close(); 
+            return user;
+        } 
+        else
+        {
+            reader.Close(); 
+            return null; 
+        } 
+    }
+
+    public User GetByLogin(string login)
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM users WHERE login = $login";
+        command.Parameters.AddWithValue("$login" , login) ; 
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        if (reader.Read())
         {
             User user = ReadUser(reader); 
             reader.Close(); 
@@ -34,6 +54,7 @@ public class UserRepository
     {
         return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
     }
+
 
     public List<User> GetPage(int pageNum, int pageLength)
     {
@@ -57,7 +78,8 @@ public class UserRepository
         return page ; 
     }
 
-    public List<User> GetAll()
+
+    public List<User> GetAll(ReviewRepository reviewRepo)
     {
         SqliteCommand command = connection.CreateCommand(); 
         command.CommandText = @"SELECT * FROM users"; 
@@ -66,6 +88,7 @@ public class UserRepository
         while(reader.Read())
         {
             User user = ReadUser(reader) ;  
+            user.reviews = reviewRepo.GetAllByAuthorId(user.id);
             list.Add(user); 
         }
         reader.Close() ; 
@@ -104,7 +127,7 @@ public class UserRepository
     public int DeleteByReviewId(int id)
     {
         SqliteCommand command = connection.CreateCommand() ;  
-        command.CommandText = @"DELETE * FROM users CROSS JOIN reviews
+        command.CommandText = @"DELETE FROM users CROSS JOIN reviews
             WHERE users.id = reviews.userId AND reviews.id = $id";
         command.Parameters.AddWithValue("$id" , id) ; 
         int res = command.ExecuteNonQuery() ; 
@@ -116,13 +139,15 @@ public class UserRepository
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText =
         @"
-            INSERT INTO users(login , fullname , createdAt )
-            VALUES( $login, $fullname, $createdAt) ; 
+            INSERT INTO users(login , fullname , createdAt, password, moderator)
+            VALUES( $login, $fullname, $createdAt, $password, $moderator); 
             SELECT last_insert_rowid() ; 
         ";
         command.Parameters.AddWithValue("$login" , user.login) ; 
         command.Parameters.AddWithValue("$fullname" , user.fullname) ; 
         command.Parameters.AddWithValue("$createdAt" , user.createdAt.ToString("o")) ; 
+        command.Parameters.AddWithValue("$password" , user.password) ; 
+        command.Parameters.AddWithValue("$moderator" , user.moderator.ToString()) ; 
         long newId = (long)command.ExecuteScalar() ;
         return (int)newId ; 
     }
@@ -130,10 +155,12 @@ public class UserRepository
     public bool Update(int id, User user)
     {
         SqliteCommand command = connection.CreateCommand() ; 
-        command.CommandText = @"UPDATE users SET login = $login , fullname = $fullname WHERE id = $id" ; 
-        command.Parameters.AddWithValue("$login" , user.login) ; 
-        command.Parameters.AddWithValue("$fullname" , user.fullname) ; 
-        command.Parameters.AddWithValue("$id" , user.id) ; 
+        command.CommandText = @"UPDATE users SET login = $login , fullname = $fullname, password = $password, moderator = $moderator WHERE id = $id" ; 
+        command.Parameters.AddWithValue("$login" , user.login); 
+        command.Parameters.AddWithValue("$fullname" , user.fullname); 
+        command.Parameters.AddWithValue("$id" , user.id); 
+        command.Parameters.AddWithValue("$password" , user.password); 
+        command.Parameters.AddWithValue("$moderator" , user.moderator.ToString()) ; 
         int res = command.ExecuteNonQuery() ; 
         return res == 1;
     }
@@ -145,6 +172,8 @@ public class UserRepository
         user.login = reader.GetString(1);
         user.fullname = reader.GetString(2);  
         user.createdAt = DateTime.Parse(reader.GetString(3));  
+        user.password = reader.GetString(4);
+        user.moderator = bool.Parse(reader.GetString(5));
         return user ;
     }
 
@@ -154,5 +183,19 @@ public class UserRepository
         command.CommandText = @"SELECT COUNT(*) FROM users"; 
         long count = (long)command.ExecuteScalar();
         return count;
+    }
+
+    public HashSet<string> GetAllLogins()
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT login FROM users;"; 
+        SqliteDataReader reader = command.ExecuteReader() ;
+        HashSet<string> logins = new HashSet<string>(); 
+        while(reader.Read())
+        {
+            logins.Add(reader.GetString(0));
+        } 
+        reader.Close() ; 
+        return logins ;
     }
 }

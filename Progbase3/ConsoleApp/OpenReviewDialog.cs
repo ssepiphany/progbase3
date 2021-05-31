@@ -9,11 +9,14 @@ public class OpenReviewDialog : Dialog
     private string dialogTitle;
     private TextField scoreInput;
     private TextField dateInput;
-    private TextField movieIdInput;
+    private TextField movieTitleInput;
     private TextField reviewIdInput;
-    private TextField userIdInput;
-    public MovieRepository movieRepo;
-    public UserRepository userRepo;
+    private TextField userInput;
+    private MovieRepository movieRepo;
+    private UserRepository userRepo;
+    private User user;
+    private Button editBtn;
+    private Button deleteBtn;
     public OpenReviewDialog()
     {
         
@@ -40,12 +43,12 @@ public class OpenReviewDialog : Dialog
         };
         this.Add(scoreLbl, scoreInput);
 
-        Label movieIdLbl = new Label(2, 6, "Movie id:");
-        movieIdInput = new TextField()
+        Label movieTitleLbl = new Label(2, 6, "Movie title:");
+        movieTitleInput = new TextField()
         {
-            X = rightColumn, Y = Pos.Top(movieIdLbl), Width = 40, ReadOnly = true, 
+            X = rightColumn, Y = Pos.Top(movieTitleLbl), Width = 40, ReadOnly = true, 
         };
-        this.Add(movieIdLbl, movieIdInput);      
+        this.Add(movieTitleLbl, movieTitleInput);      
 
         Label createdAtLbl = new Label(2, 8, "Created at:");
 
@@ -56,19 +59,19 @@ public class OpenReviewDialog : Dialog
 
         this.Add(createdAtLbl, dateInput);
 
-        Label userIdLbl = new Label(2, 10, "User id:");
-        userIdInput = new TextField()
+        Label userLbl = new Label(2, 10, "User:");
+        userInput = new TextField()
         {
-            X = rightColumn, Y = Pos.Top(userIdLbl), Width = 40, ReadOnly = true, 
+            X = rightColumn, Y = Pos.Top(userLbl), Width = 40, ReadOnly = true, 
         };
-        this.Add(userIdLbl, userIdInput); 
+        this.Add(userLbl, userInput); 
 
         
-        Button editBtn = new Button(2, 22, "Edit");
+        editBtn = new Button(2, 22, "Edit");
         editBtn.Clicked += OnReviewEdit;
         this.Add(editBtn);
 
-        Button deleteBtn = new Button("Delete")
+        deleteBtn = new Button("Delete")
         {
             X = Pos.Right(editBtn) + 2, Y = Pos.Top(editBtn), 
         };
@@ -96,6 +99,7 @@ public class OpenReviewDialog : Dialog
         if(!dialog.canceled)
         {
             Review updatedReview = dialog.GetReview();
+            updatedReview.userId = this.user.id;
             this.updated = true;
             updatedReview.id = review.id;
             this.SetReview(updatedReview);
@@ -108,14 +112,22 @@ public class OpenReviewDialog : Dialog
         this.userRepo = userRepo;
     }
 
+    public void SetUser(User user)
+    {
+        this.user = user ;
+        this.editBtn.Visible = (this.review.userId == user.id);
+        this.deleteBtn.Visible = (this.review.userId == user.id || this.user.moderator);
+
+    }
+
     public void SetReview(Review review)
     {
         this.review = review;
         this.reviewIdInput.Text = review.id.ToString();
         this.scoreInput.Text = review.value.ToString();
-        this.movieIdInput.Text = review.movieId.ToString();
+        this.movieTitleInput.Text = movieRepo.GetById(review.movieId).title;
         this.dateInput.Text = review.createdAt.ToString("F");
-        this.userIdInput.Text = review.userId.ToString();
+        this.userInput.Text = userRepo.GetById(review.userId).login;
     }
 
     private void OnOpenDialogSubmit()

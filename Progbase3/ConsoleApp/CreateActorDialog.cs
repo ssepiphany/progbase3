@@ -8,6 +8,8 @@ public class CreateActorDialog : Dialog
     protected RadioGroup genderGroup;
     protected NStack.ustring[] options;
     protected TextField ageInput;
+    protected Label actorGengerLbl;
+    protected Label ageLbl;
     public CreateActorDialog()
     {
         this.dialogTitle = "Create actor";
@@ -30,14 +32,14 @@ public class CreateActorDialog : Dialog
         };
         this.Add(fullnameLbl, fullnameInput);
 
-        Label actorGengerLbl = new Label(2, 6, "Gender:");
+        actorGengerLbl = new Label(2, 6, "Gender:");
         options = new NStack.ustring[]{"male" , "female"};
         genderGroup = new RadioGroup(rightColumn, 6, options);
 
         this.Add(actorGengerLbl, genderGroup);
 
 
-        Label ageLbl = new Label(2, 7 + options.Length , "Age:");
+        ageLbl = new Label(2, 7 + options.Length , "Age:");
         ageInput = new TextField("")
         {
             X = rightColumn, Y = Pos.Top(ageLbl), Width = 40,
@@ -55,13 +57,13 @@ public class CreateActorDialog : Dialog
         return actor;
     }
 
-    private void OnCreateDialogCanceled()
+    protected void OnCreateDialogCanceled()
     {
         this.canceled = true;
         Application.RequestStop();
     }
 
-    private void OnCreateDialogSubmit()
+    protected void OnCreateDialogSubmit()
     {
         if(!ValidateInput()) 
         {
@@ -72,7 +74,7 @@ public class CreateActorDialog : Dialog
         Application.RequestStop();
     }
 
-    public bool ValidateInput()
+    protected virtual bool ValidateInput()
     {
         if(this.fullnameInput.Text.IsEmpty || this.ageInput.Text.IsEmpty)
         {

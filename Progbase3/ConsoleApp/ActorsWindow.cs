@@ -5,25 +5,30 @@ using System.IO;
 public class ActorsWindow : Window
 {
     
-    public string title = "Actor DB";
-    private ListView allActorsListView;
-    private Label emptyListLbl;
-    private int page = 1;
-    private Label totalPagesLbl;
-    private Label pageLbl;
-    private Button prevPageBtn;
-    private Button newxtPageBtn;
-    private int pageLength = 12;
-    private NStack.ustring[] options;
-    private RadioGroup typeGroup; 
+    protected string title = "Actor DB";
+    protected ListView allActorsListView;
+    protected Label emptyListLbl;
+    protected int page = 1;
+    protected Label totalPagesLbl;
+    protected Label pageLbl;
+    protected Button prevPageBtn;
+    protected Button newxtPageBtn;
+    protected int pageLength = 12;
+    protected NStack.ustring[] options;
+    protected RadioGroup typeGroup; 
     public int selectedItem;
-    private MovieRepository movieRepository;
-    private UserRepository userRepository;
-    private ActorRepository actorRepository;
-    private ReviewRepository reviewRepository;
+    protected UserRepository userRepository;
+    protected ActorRepository actorRepository;
+    protected ReviewRepository reviewRepository;
+    protected MovieRepository movieRepository;
+    protected User currentUser;
+    protected Label currentUsername;
+    protected Button createNewActor;
+    protected MenuBar menu;
+    protected FrameView frameView;
     public ActorsWindow()
     {
-        MenuBar menu = new MenuBar
+        menu = new MenuBar
         (new MenuBarItem[] 
         {
            new MenuBarItem ("_File", new MenuItem [] 
@@ -41,10 +46,10 @@ public class ActorsWindow : Window
 
         this.Title = this.title;
 
-        options = new NStack.ustring[]{"movies", "actors", "users", "reviews"};
+        options = new NStack.ustring[]{"movies", "actors", "users", "my reviews"};
         typeGroup = new RadioGroup()
         {
-            X = Pos.AnchorEnd() - 10, Y = 2, RadioLabels = options, 
+            X = Pos.AnchorEnd() - 15, Y = 2, RadioLabels = options, 
         };
         typeGroup.SelectedItem = 1;
         typeGroup.SelectedItemChanged += OnSelectedItemChanged; 
@@ -79,50 +84,58 @@ public class ActorsWindow : Window
             Text = "There are no actors!", Width = Dim.Fill(), Height = Dim.Fill(), X = 2, Y = 2,
         };
 
-        FrameView frameView = new FrameView("Actors")
+        frameView = new FrameView("Actors")
         {
-            X = 2, Y = 8, Width = Dim.Fill() - 1, Height =  Dim.Fill() - 3,
+            X = 2, Y = 8, Width = Dim.Fill() - 5, Height =  Dim.Fill() - 5,
         };
         frameView.Add(allActorsListView);
         frameView.Add(emptyListLbl);
         this.Add(frameView);
 
-
-        Button createNewActor = new Button(2, 4, "Create new actor");
+        createNewActor = new Button(2, 4, "Create new actor");
         createNewActor.Clicked += OnCreateButtonClicked;
         this.Add(createNewActor);
 
-        // Button backBtn = new Button()
-        // {
-        //     X = Pos.Center(), Y = Pos.Percent(98), Text = "Back",
-        // };
-        // backBtn.Clicked += OnQuit;
-        // this.Add(backBtn);
+        Label currentUserLbl = new Label("Current user:")
+        {
+            X = Pos.Percent(5), Y = Pos.Percent(95), Width = 15,
+        };
+
+        currentUsername = new Label("?")
+        {
+            X = Pos.Right(currentUserLbl) + 1, Y = Pos.Top(currentUserLbl), Width = 20, 
+        };
+
+        this.Add(currentUserLbl, currentUsername);
     }
 
-    private void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
+    protected void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
     {
         this.selectedItem = args.SelectedItem;
         Application.RequestStop();
     }
 
-    public void SetRepositories(MovieRepository movieRepository, UserRepository userRepository, ActorRepository actorRepository, ReviewRepository reviewRepository)
+    public void SetCurrentUser(User user)
     {
-        this.movieRepository = movieRepository;
+        this.currentUser = user;
+        this.currentUsername.Text = user.login;
+        this.ShowCurrentPage();
+    }
+    public void SetRepositories(UserRepository userRepository, ActorRepository actorRepository, ReviewRepository reviewRepository, MovieRepository movieRepository)
+    {
         this.userRepository = userRepository;
         this.actorRepository = actorRepository;
         this.reviewRepository = reviewRepository;
-        this.ShowCurrentPage();
+        this.movieRepository = movieRepository;
     }
 
-    private void OnQuit()
+    protected void OnQuit()
     {
         this.selectedItem = -1;
         Application.RequestStop();
     }
 
-
-    private void OnNextPage()
+    protected virtual void OnNextPage()
     {
         int totalPages = actorRepository.GetTotalPages(pageLength);
         if(page >= totalPages)
@@ -133,7 +146,7 @@ public class ActorsWindow : Window
         this.ShowCurrentPage();
     }
 
-    private void OnPreviousPage()
+    protected void OnPreviousPage()
     {
         if(page == 1)
         {
@@ -143,22 +156,23 @@ public class ActorsWindow : Window
         this.ShowCurrentPage();
     }
 
-    private void ShowCurrentPage()
+    protected virtual void ShowCurrentPage()
     {
         bool isEmptyList = (this.actorRepository.GetCount() == 0);
         int totalPages = actorRepository.GetTotalPages(pageLength);
         this.pageLbl.Visible = !isEmptyList;
         this.pageLbl.Text = page.ToString();
-        this.totalPagesLbl.Text = actorRepository.GetTotalPages(pageLength).ToString();
+        this.totalPagesLbl.Text = totalPages.ToString();
         this.totalPagesLbl.Visible = !isEmptyList;
         this.allActorsListView.Visible = !isEmptyList;
         this.allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         newxtPageBtn.Visible = (page != totalPages) && (!isEmptyList);
+        this.createNewActor.Visible = this.currentUser.moderator;
     }
 
-    private void OnCreateButtonClicked()
+    protected virtual void OnCreateButtonClicked()
     {
         CreateActorDialog dialog = new CreateActorDialog();
         Application.Run(dialog);
@@ -168,42 +182,30 @@ public class ActorsWindow : Window
             Actor actor = dialog.GetActor();
             int id = actorRepository.Insert(actor);
             actor.id = id;
-            allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
+            // allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
             ShowCurrentPage();
             ProcessOpenActor(actor);
         }
     }
 
-    private void OnOpenActor(ListViewItemEventArgs args)
+    protected void OnOpenActor(ListViewItemEventArgs args)
     {
         Actor actor = (Actor)args.Value;
         ProcessOpenActor(actor);
     }
 
-    private void ProcessOpenActor(Actor actor)
+    protected void ProcessOpenActor(Actor actor)
     {
         OpenActorDialog dialog = new OpenActorDialog();
+        dialog.SetRepositories(movieRepository, actorRepository);
         dialog.SetActor(actor);
+        dialog.SetCurrentUser(this.currentUser);
 
         Application.Run(dialog);
 
         if(dialog.deleted)
         {
-            bool result = actorRepository.DeleteById(actor.id);
-            if(result)
-            {
-                int pages = actorRepository.GetTotalPages(pageLength);
-                if(page > pages && page > 1)
-                {
-                    page--;
-                }
-                allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
-                this.ShowCurrentPage();
-            }
-            else
-            {
-                MessageBox.ErrorQuery("Delete actor", "Can not delete actor", "OK");
-            }
+            TryDeleteActor(actor);
         }
 
         if(dialog.updated)
@@ -211,7 +213,8 @@ public class ActorsWindow : Window
             bool result = actorRepository.Update(actor.id, dialog.GetActor());
             if(result)
             {
-                allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
+                this.ShowCurrentPage();
+                //allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
             }
             else
             {
@@ -220,7 +223,27 @@ public class ActorsWindow : Window
         }
     }
 
-    private void OnExport()
+    protected virtual void TryDeleteActor(Actor actor)
+    {
+        bool result = actorRepository.DeleteById(actor.id);
+        actorRepository.RemoveConnectionsWithActor(actor.id);
+        if(result)
+        {
+            int pages = actorRepository.GetTotalPages(pageLength);
+            if(page > pages && page > 1)
+            {
+                page--;
+            }
+            //allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
+            this.ShowCurrentPage();
+        }
+        else
+        {
+            MessageBox.ErrorQuery("Delete actor", "Can not delete actor", "OK");
+        }
+    }
+
+    protected void OnExport()
     {
         ExportDialog exportDialog = new ExportDialog();
         exportDialog.SetRepositories(userRepository, reviewRepository);
@@ -233,7 +256,7 @@ public class ActorsWindow : Window
         }
     }
 
-    private void OnImport()
+    protected void OnImport()
     {
         ImportDialog importDialog = new ImportDialog();
         importDialog.SetRepositories(userRepository, reviewRepository);
@@ -265,11 +288,11 @@ public class ActorsWindow : Window
         }
     }
 
-    private void OnAbout()
+    protected void OnAbout()
     {
         Dialog dialog = new Dialog("About");
 
-        Label titleLbl = new Label("Activity database");
+        Label titleLbl = new Label("Movie database");
         dialog.Add(titleLbl);
 
         string info = File.ReadAllText("./about");

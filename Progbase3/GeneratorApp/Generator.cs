@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System;
-using System.IO ; 
+using System.IO ;
+using System.Text;
+using System.Security.Cryptography;
 
 static class Generator
 {
-    public static List<Actor> GenerateActors(int num)
+    public static List<Actor> GenerateActors(int num, ActorRepository actorRepo)
     {
         Random random = new Random();
         string[] genders = new string[] {"male", "female"};
@@ -29,6 +31,11 @@ static class Generator
                 continue;
             }
             Actor actor = new Actor(); 
+            if(actorRepo.GetByFullname(values[1]) != null)
+            {
+                i--;
+                continue;
+            }
             actor.fullname = values[1] ;  
             actor.age = random.Next(15, 81);
             actor.gender = genders[random.Next(1,3)];
@@ -38,7 +45,7 @@ static class Generator
         return actors ; 
     }
 
-    public static List<Movie> GenerateMovies(int num)
+    public static List<Movie> GenerateMovies(int num, MovieRepository movieRepository)
     {
         Random random = new Random();
         string[] genres = new string[] {"comedy", "action", "drama", "horror", "fantasy", "other"};
@@ -63,6 +70,11 @@ static class Generator
                 continue;
             }
             Movie movie = new Movie(); 
+            if(movieRepository.GetByTitle(values[1]) != null)
+            {
+                i--;
+                continue;
+            }
             movie.title = values[1];  
             movie.genre = genres[random.Next(0,genres.Length)];
             // movie.starringJackieChan = random.Next(1, 100) > 60;
@@ -77,13 +89,13 @@ static class Generator
         return movies ; 
     }
 
-    public static List<Review> GenerateReviews(int num, UserRepository userRepo, MovieRepository movieRepo)
+    public static List<Review> GenerateReviews(int num, UserRepository userRepo, MovieRepository movieRepo, HashSet<string> logins)
     {
         // string filePath = "C:/Users/Sofia/projects/progbase3/data/generator/IMDB Dataset.csv";
         List<Review> reviews = new List<Review>();
         Dictionary<int, List<int>> connection = new Dictionary<int, List<int>>();
-        if(userRepo.GetCount() == 0) GenerateUsers(num/2);
-        if(movieRepo.GetCount() == 0) GenerateMovies(num/2);
+        if(userRepo.GetCount() == 0) GenerateUsers(num/2, logins);
+        if(movieRepo.GetCount() == 0) GenerateMovies(num/2, movieRepo);
         RandomDateTime date = new RandomDateTime();
         Random random = new Random();
         for(int i = 0; i < num; i++)
@@ -98,9 +110,10 @@ static class Generator
         return reviews;
     }
 
-    public static List<User> GenerateUsers(int num)
+    public static List<User> GenerateUsers(int num, HashSet<string> logins)
     {
         string filePath = "C:/Users/Sofia/projects/progbase3/data/generator/users.csv";
+        Random random = new Random();
         StreamReader sr = new StreamReader(filePath) ; 
         int counter = 0;
         List<User> users = new List<User>();
@@ -116,14 +129,42 @@ static class Generator
             }
             string[] values = row.Split(',') ;
             User user = new User();
+            while(logins.Contains(values[2]))
+            {
+                i--;
+                continue;
+            }
+
             user.login = values[2];
             user.fullname = values[1];
             user.createdAt = DateTime.Parse(values[0]);
+            user.moderator = random.Next(1,100) > 90;
+
+            string password = CreatePassword(random.Next(5, 15));
+
+            SHA256 sha256 = SHA256.Create();
+            user.password =  GetHash(sha256, password);
+            sha256.Dispose();
             users.Add(user);
         }
         sr.Close() ; 
         return users;
     }
+
+    private static string GetHash(HashAlgorithm hashAlgorithm, string input)
+    {
+       byte[] data = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(input));
+ 
+       StringBuilder sb = new StringBuilder();
+
+       for (int i = 0; i < data.Length; i++)
+       {
+            sb.Append(data[i].ToString("x2"));
+       }
+ 
+       return sb.ToString();
+    }
+
 
     private static void CreateConnectionInReviews(ref Review review, long userCount, long movieCount, Dictionary<int, List<int>> connection)
     {
@@ -173,7 +214,19 @@ static class Generator
                 CreateActorsMoviesConnection(connection, moviesRepo, actorsList);
             }
         }
-        moviesRepo.ConnectWithActors(movieId, actorId);
+        moviesRepo.ConnectMovieActor(movieId, actorId);
+    }
+
+    private static string CreatePassword(int length)
+    {
+        string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        StringBuilder sb = new StringBuilder();
+        Random random = new Random();
+        while (0 < length--)
+        {
+            sb.Append(chars[random.Next(chars.Length)]);
+        }
+        return sb.ToString();
     }
 
     class RandomDateTime

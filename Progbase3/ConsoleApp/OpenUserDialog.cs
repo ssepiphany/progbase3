@@ -11,6 +11,9 @@ public class OpenUserDialog : Dialog
     private TextField fullnameInput;
     private TextField loginInput;
     private TextField dateInput;
+    private User currentUser;
+    private Button editBtn;
+    private Button deleteBtn;
     public OpenUserDialog()
     {
         this.dialogTitle = "Open user";
@@ -53,17 +56,24 @@ public class OpenUserDialog : Dialog
 
         this.Add(dateTimeLbl, dateInput);
 
-        Button editBtn = new Button(2, 22, "Edit");
+        editBtn = new Button(2, 22, "Edit");
         editBtn.Clicked += OnUserEdit;
         this.Add(editBtn);
 
-        Button deleteBtn = new Button("Delete")
+        deleteBtn = new Button("Delete")
         {
             X = Pos.Right(editBtn) + 2, Y = Pos.Top(editBtn), 
         };
         deleteBtn.Clicked += OnUserDelete;
         this.Add(deleteBtn);
 
+    }
+
+    public void SetCurrentUser(User user)
+    {
+        this.currentUser = user;
+        this.editBtn.Visible = this.user.id == this.currentUser.id;
+        this.deleteBtn.Visible = this.currentUser.moderator || (this.user.id == this.currentUser.id);
     }
 
     private void OnUserDelete()

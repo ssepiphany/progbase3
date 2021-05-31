@@ -9,6 +9,11 @@ public class OpenActorDialog : Dialog
     private TextField fullnameInput;
     private TextField genderValue;
     private TextField ageInput;
+    private User currentUser;
+    private Button editBtn;
+    private Button deleteBtn;
+    private MovieRepository movieRepository;
+    private ActorRepository actorRepository;
     public OpenActorDialog()
     {
         this.Title = "Open actor";
@@ -52,17 +57,37 @@ public class OpenActorDialog : Dialog
         };
         this.Add(ageLbl, ageInput);
 
+        Button moviesBtn = new Button()
+        {
+            X = 2, Y = Pos.Percent(55), Text = "View movies", Width = 15, 
+        };
+        moviesBtn.Clicked += OnViewMovies;
+        this.Add(moviesBtn);
 
-        Button editBtn = new Button(2, 22, "Edit");
+
+        editBtn = new Button(2, 22, "Edit");
         editBtn.Clicked += OnActorEdit;
         this.Add(editBtn);
 
-        Button deleteBtn = new Button("Delete")
+        deleteBtn = new Button("Delete")
         {
             X = Pos.Right(editBtn) + 2, Y = Pos.Top(editBtn), 
         };
         deleteBtn.Clicked += OnActorDelete;
         this.Add(deleteBtn);
+    }
+
+    public void SetCurrentUser(User user)
+    {
+        this.currentUser = user;
+        this.editBtn.Visible = this.currentUser.moderator;
+        this.deleteBtn.Visible = this.currentUser.moderator;
+    }
+
+    public void SetRepositories(MovieRepository movieRepository, ActorRepository actorRepository)
+    {
+        this.movieRepository = movieRepository;
+        this.actorRepository = actorRepository;
     }
 
     private void OnActorDelete()
@@ -73,6 +98,15 @@ public class OpenActorDialog : Dialog
             this.deleted = true;
             Application.RequestStop();
         }
+    }
+
+    private void OnViewMovies()
+    {
+        OpenActorMoviesWindow win = new OpenActorMoviesWindow();
+        win.SetRepositories(actorRepository, movieRepository);
+        win.SetActor(this.actor);
+        win.SetCurrentUser(this.currentUser);
+        Application.Run(win);
     }
 
     private void OnActorEdit()

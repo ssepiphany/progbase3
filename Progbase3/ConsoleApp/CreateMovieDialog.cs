@@ -11,6 +11,7 @@ public class CreateMovieDialog : Dialog
     protected Label releaseDateLbl;
     // protected CheckBox starringCheck;
     protected DateField dateInput;
+    protected Label genreLbl;
     public CreateMovieDialog()
     {
         this.dialogTitle = "Create movie";
@@ -33,7 +34,7 @@ public class CreateMovieDialog : Dialog
         };
         this.Add(movieTitleLbl, movieTitleInput);
 
-        Label genreLbl = new Label(2, 6, "Genre:");
+        genreLbl = new Label(2, 6, "Genre:");
         options = new NStack.ustring[]{"comedy", "action", "drama", "horror", "fantasy", "other"};
         genreGroup = new RadioGroup(rightColumn, 6, options);
 
@@ -66,13 +67,13 @@ public class CreateMovieDialog : Dialog
         return movie;
     }
 
-    private void OnCreateDialogCanceled()
+    protected void OnCreateDialogCanceled()
     {
         this.canceled = true;
         Application.RequestStop();
     }
 
-    private void OnCreateDialogSubmit()
+    protected void OnCreateDialogSubmit()
     {
         if(!ValidateInput()) 
         {
@@ -83,7 +84,7 @@ public class CreateMovieDialog : Dialog
         Application.RequestStop();
     }
 
-    public bool ValidateInput()
+    protected virtual bool ValidateInput()
     {
         if(this.movieTitleInput.Text.IsEmpty)
         {

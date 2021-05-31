@@ -11,6 +11,8 @@ public class CreateUserDialog : Dialog
     protected DateField dateInput;
     protected Label dateTimeLbl;
     protected TimeField timeInput;
+    protected TextField passwordInput;
+    protected CheckBox moderatorCheck;
     public CreateUserDialog()
     {
         this.dialogTitle = "Create user";
@@ -54,6 +56,16 @@ public class CreateUserDialog : Dialog
 
         this.Add(dateTimeLbl, dateInput, timeInput);
 
+        Label passwordLbl = new Label(2, 10, "Password:");
+        passwordInput = new TextField()
+        {
+            X = rightColumn, Y = Pos.Top(passwordLbl), Width = 40, Secret = true, 
+        };
+
+        moderatorCheck = new CheckBox(10, 12, "Moderator");
+
+        this.Add(passwordLbl, passwordInput, moderatorCheck);
+
     }
 
     public User GetUser()
@@ -62,6 +74,8 @@ public class CreateUserDialog : Dialog
         user.fullname = this.fullnameInput.Text.ToString(); 
         user.login = this.loginInput.Text.ToString();
         user.createdAt = this.dateInput.Date + this.timeInput.Time;
+        user.password = this.passwordInput.Text.ToString();
+        user.moderator = this.moderatorCheck.Checked;
         return user;
     }
 
@@ -84,7 +98,7 @@ public class CreateUserDialog : Dialog
 
     public bool ValidateInput()
     {
-        if(this.fullnameInput.Text.IsEmpty || this.loginInput.Text.IsEmpty)
+        if(this.fullnameInput.Text.IsEmpty || this.loginInput.Text.IsEmpty || this.passwordInput.Text.IsEmpty)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
             return false;

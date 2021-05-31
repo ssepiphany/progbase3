@@ -18,9 +18,14 @@ public class Review
     public Movie movie;
     [XmlIgnore]
     public bool imported;
+    public int outputFormat;
 
     public override string ToString()
     {
-        return $"[{this.id}] \"{movie.title}\": {this.value} points";
+        if(this.outputFormat == 1)
+        {
+            return $"[{this.id}] \"{this.movie.title}\": {this.value}/10";
+        }
+        return $"[{this.id}] {this.author.login}: {this.value}/10";
     }
 }

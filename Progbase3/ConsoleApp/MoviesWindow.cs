@@ -4,26 +4,31 @@ using System.IO;
 
 public class MoviesWindow : Window
 {
-    public string title = "Movie DB";
-    private ListView allMoviesListView;
-    private Label emptyListLbl;
-    private int page = 1;
-    private MovieRepository repo;
-    private Label totalPagesLbl;
-    private Label pageLbl;
-    private Button prevPageBtn;
-    private Button newxtPageBtn;
-    private int pageLength = 12;
-    private NStack.ustring[] options;
+    protected string title = "Movie DB";
+    protected ListView allMoviesListView;
+    protected Label emptyListLbl;
+    protected int page = 1;
+    protected MovieRepository repo;
+    protected Label totalPagesLbl;
+    protected Label pageLbl;
+    protected Button prevPageBtn;
+    protected Button newxtPageBtn;
+    protected int pageLength = 12;
+    protected NStack.ustring[] options;
     // private Label chooseEntityLbl;
-    private RadioGroup typeGroup; 
+    protected RadioGroup typeGroup; 
     public int selectedItem;
-    private UserRepository userRepository;
-    private ActorRepository actorRepository;
-    private ReviewRepository reviewRepository;
+    protected UserRepository userRepository;
+    protected ReviewRepository reviewRepository;
+    protected ActorRepository actorRepository;
+    protected User currentUser;
+    protected Label currentUsername;
+    protected Button createNewMovie;
+    protected MenuBar menu;
+    protected FrameView frameView;
     public MoviesWindow()
     {
-        MenuBar menu = new MenuBar
+        menu = new MenuBar
         (new MenuBarItem[] 
         {
            new MenuBarItem ("_File", new MenuItem [] 
@@ -39,24 +44,24 @@ public class MoviesWindow : Window
         });
        this.Add(menu);
 
-
         this.Title = this.title;
 
-        options = new NStack.ustring[]{"movies", "actors", "users", "reviews"};
+        options = new NStack.ustring[]{"movies", "actors", "users", "my reviews"};
         typeGroup = new RadioGroup()
         {
-            X = Pos.AnchorEnd() - 10, Y = 2, RadioLabels = options, 
+            X = Pos.AnchorEnd() - 15, Y = 2, RadioLabels = options, 
         };
         typeGroup.SelectedItem = 0;
         typeGroup.SelectedItemChanged += OnSelectedItemChanged; 
 
         this.Add(typeGroup);
+        
 
         allMoviesListView = new ListView(new List<Movie>())
         {
             Width = Dim.Fill(), Height = Dim.Fill(),
         };
-        allMoviesListView.OpenSelectedItem += OnOpenActivity;;
+        allMoviesListView.OpenSelectedItem += OnOpenMovie;;
 
         prevPageBtn = new Button(2, 6, "Prev");
         prevPageBtn.Clicked += OnPreviousPage;
@@ -80,50 +85,60 @@ public class MoviesWindow : Window
             Text = "There are no movies!", Width = Dim.Fill(), Height = Dim.Fill(), X = 2, Y = 2,
         };
 
-        FrameView frameView = new FrameView("Movies")
+        frameView = new FrameView("Movies")
         {
-            X = 2, Y = 8, Width = Dim.Fill() - 1, Height =  Dim.Fill() - 3,
+            X = 2, Y = 8, Width = Dim.Fill() - 5, Height =  Dim.Fill() - 5,
         };
         frameView.Add(allMoviesListView);
         frameView.Add(emptyListLbl);
         this.Add(frameView);
 
+        createNewMovie = new Button(2, 4, "Create new movie");
+        createNewMovie.Clicked += OnCreateButtonClicked;
+        this.Add(createNewMovie);
 
-        Button createNewActivity = new Button(2, 4, "Create new movie");
-        createNewActivity.Clicked += OnCreateButtonClicked;
-        this.Add(createNewActivity);
+        Label currentUserLbl = new Label("Current user:")
+        {
+            X = Pos.Percent(5), Y = Pos.Percent(95), Width = 15,
+        };
 
-        // Button backBtn = new Button()
-        // {
-        //     X = Pos.Center(), Y = Pos.Percent(98), Text = "Back",
-        // };
-        // backBtn.Clicked += OnQuit;
-        // this.Add(backBtn);
+        currentUsername = new Label("?")
+        {
+            X = Pos.Right(currentUserLbl) + 1, Y = Pos.Top(currentUserLbl), Width = 20,
+        };
+
+        this.Add(currentUserLbl, currentUsername);
     }
 
-    public void SetRepositories(MovieRepository movieRepository, UserRepository userRepository, ActorRepository actorRepository, ReviewRepository reviewRepository)
+    public void SetRepositories(MovieRepository movieRepository, UserRepository userRepository, ReviewRepository reviewRepository, ActorRepository actorRepository)
     {
         this.repo = movieRepository;
         this.userRepository = userRepository;
-        this.actorRepository = actorRepository;
         this.reviewRepository = reviewRepository;
+        this.actorRepository = actorRepository;
+    }
+
+    public void SetCurrentUser(User user)
+    {
+        this.currentUser = user;
+        this.currentUsername.Text = user.login;
         this.ShowCurrentPage();
     }
 
-    private void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
+    protected void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
     {
         this.selectedItem = args.SelectedItem;
         Application.RequestStop();
     }
 
-    private void OnQuit()
+    protected void OnQuit()
     {
         this.selectedItem = -1;
         Application.RequestStop();
     }
 
 
-    private void OnNextPage()
+    protected virtual void OnNextPage()
     {
         int totalPages = repo.GetTotalPages(pageLength);
         if(page >= totalPages)
@@ -134,7 +149,7 @@ public class MoviesWindow : Window
         this.ShowCurrentPage();
     }
 
-    private void OnPreviousPage()
+    protected void OnPreviousPage()
     {
         if(page == 1)
         {
@@ -144,7 +159,7 @@ public class MoviesWindow : Window
         this.ShowCurrentPage();
     }
 
-    private void ShowCurrentPage()
+    protected virtual void ShowCurrentPage()
     {
         bool isEmptyList = (this.repo.GetCount() == 0);
         int totalPages = repo.GetTotalPages(pageLength);
@@ -157,9 +172,10 @@ public class MoviesWindow : Window
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         newxtPageBtn.Visible = (page != totalPages) && (!isEmptyList);
+        this.createNewMovie.Visible = this.currentUser.moderator;
     }
 
-    private void OnCreateButtonClicked()
+    protected virtual void OnCreateButtonClicked()
     {
         CreateMovieDialog dialog = new CreateMovieDialog();
         Application.Run(dialog);
@@ -175,36 +191,24 @@ public class MoviesWindow : Window
         }
     }
 
-    private void OnOpenActivity(ListViewItemEventArgs args)
+    protected void OnOpenMovie(ListViewItemEventArgs args)
     {
         Movie movie = (Movie)args.Value;
         ProcessOpenMovie(movie);
     }
 
-    private void ProcessOpenMovie(Movie movie)
+    protected void ProcessOpenMovie(Movie movie)
     {
         OpenMovieDialog dialog = new OpenMovieDialog();
         dialog.SetMovie(movie);
+        dialog.SetRepositories(actorRepository, reviewRepository, userRepository, repo);
+        dialog.SetCurrentUser(this.currentUser);
 
         Application.Run(dialog);
 
         if(dialog.deleted)
         {
-            bool result = repo.DeleteById(movie.id);
-            if(result)
-            {
-                int pages = repo.GetTotalPages(pageLength);
-                if(page > pages && page > 1)
-                {
-                    page--;
-                }
-                allMoviesListView.SetSource(repo.GetPage(page, pageLength));
-                this.ShowCurrentPage();
-            }
-            else
-            {
-                MessageBox.ErrorQuery("Delete movie", "Can not delete movie", "OK");
-            }
+            TryDeleteMovie(movie);
         }
 
         if(dialog.updated)
@@ -221,7 +225,28 @@ public class MoviesWindow : Window
         }
     }
 
-    private void OnExport()
+    protected virtual void TryDeleteMovie(Movie movie)
+    {
+        bool res = repo.DeleteById(movie.id);
+        repo.RemoveConnectionsWithMovie(movie.id);
+        reviewRepository.DeleteAllByMovieId(movie.id);
+        if(res)
+        {
+            int pages = repo.GetTotalPages(pageLength);
+            if(page > pages && page > 1)
+            {
+                page--;
+            }
+            //allMoviesListView.SetSource(repo.GetPage(page, pageLength));
+            this.ShowCurrentPage();
+        }
+        else
+        {
+            MessageBox.ErrorQuery("Delete movie", "Can not delete movie", "OK");
+        }
+    }
+
+    protected void OnExport()
     {
         ExportDialog exportDialog = new ExportDialog();
         exportDialog.SetRepositories(userRepository, reviewRepository);
@@ -234,7 +259,7 @@ public class MoviesWindow : Window
         }
     }
 
-    private void OnImport()
+    protected void OnImport()
     {
         ImportDialog importDialog = new ImportDialog();
         importDialog.SetRepositories(userRepository, reviewRepository);
@@ -266,11 +291,11 @@ public class MoviesWindow : Window
         }
     }
 
-    private void OnAbout()
+    protected void OnAbout()
     {
         Dialog dialog = new Dialog("About");
 
-        Label titleLbl = new Label("Activity database");
+        Label titleLbl = new Label("Movie database");
         dialog.Add(titleLbl);
 
         string info = File.ReadAllText("./about");

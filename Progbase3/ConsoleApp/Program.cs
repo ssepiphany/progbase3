@@ -20,73 +20,84 @@ namespace ConsoleApp
             UserRepository userRepo = new UserRepository(connection);
 
             int selectedItem = 0;
+            bool authorized = false;
+            User currentUser = new User();
+
+            Application.Init();
+            Toplevel top = Application.Top;
+            while(!authorized)
+            {
+                WelcomeWindow welcomeWin = new WelcomeWindow();
+                welcomeWin.SetRepository(userRepo);
+
+                top.Add(welcomeWin);
+                Application.Run();
+                authorized = welcomeWin.authorized;
+                currentUser = welcomeWin.GetUser();
+
+                if(welcomeWin.wantRegistration)
+                {
+                    RegisterWindow registrationWin = new RegisterWindow();
+                    registrationWin.SetRepository(userRepo);
+                    top.Add(registrationWin);
+                    Application.Run();
+                    if(registrationWin.wantToQuit)
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    if(!authorized) return;
+                }
+            }
 
             while(true)
             {
-                Application.Init();
-                // MenuLine menu = new MenuLine();
-                // menu.SetRepositories(movieRepo, userRepo, actorRepo, reviewRepo);
-                Toplevel top = Application.Top;
                 if(selectedItem == 0)
                 {
                     MoviesWindow win = new MoviesWindow();
-                    win.SetRepositories(movieRepo, userRepo, actorRepo, reviewRepo);
+                    win.SetRepositories(movieRepo, userRepo, reviewRepo, actorRepo);
+                    win.SetCurrentUser(currentUser);
 
                     top.Add(win);
                     Application.Run();
                     selectedItem = win.selectedItem;
                 }
-                else if(selectedItem == 1)
+                if(selectedItem == 1)
                 {
                     ActorsWindow win = new ActorsWindow();
-                    win.SetRepositories(movieRepo, userRepo, actorRepo, reviewRepo);
+                    win.SetRepositories(userRepo, actorRepo, reviewRepo, movieRepo);
+                    win.SetCurrentUser(currentUser);
                     top.Add(win);
                     Application.Run();
                     selectedItem = win.selectedItem;
                 }
-                else if(selectedItem == 2)
-                {
-                    UsersWindow win = new UsersWindow();
-                    win.SetRepository(userRepo);
-                    top.Add(win);
-                    Application.Run();
-                    selectedItem = win.selectedItem;
-                }
-                else if(selectedItem == 3)
+                if(selectedItem == 3)
                 {
                     ReviewsWindow win = new ReviewsWindow();
-                    win.SetRepositories(movieRepo, userRepo, actorRepo, reviewRepo);
+                    win.SetRepositories(movieRepo, userRepo, reviewRepo);
+                    win.SetCurrentUser(currentUser);
                     top.Add(win);
                     Application.Run();
                     selectedItem = win.selectedItem;
                 }
-                else
+                if(selectedItem == 2)
+                {
+                    UsersWindow win = new UsersWindow();
+                    win.SetRepositories(userRepo, reviewRepo);
+                    win.SetCurrentUser(currentUser);
+                    top.Add(win);
+                    Application.Run();
+                    selectedItem = win.selectedItem;
+                }
+                if(selectedItem == -1)
                 {
                     break;
                 }
             }
+
             connection.Close();
-
-            // Console.WriteLine("Please, enter your command:");
-            // string[] command = Console.ReadLine().Trim().Split();
-            // UserRepository userRepo = new UserRepository(connection);
-            // ReviewRepository reviewRepo = new ReviewRepository(connection);
-            // User user = userRepo.GetById(7);
-            // if(command[0] == "generate")
-            // {
-            //     // generate {movie} {5}
-            //     UserInterface.ProcessGenerate(command, connection);
-            // }
-            // if(command[0] == "export")
-            // {
-            //     user = reviewRepo.GetReviewsForExport(user);
-            //     ExportImport.Export(user, "C:/Users/Sofia/my");
-            // }
-        }
-
-        static void OnQuit()
-        {
-            Application.RequestStop();
         }
 
         static void SetDotSeparator()

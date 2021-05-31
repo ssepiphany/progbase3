@@ -10,6 +10,6 @@ public class Actor
 
     public override string ToString()
     {
-        return $"[{this.id}] {this.fullname} ({this.age})";
+        return $"[{this.id}] {this.fullname} ({this.age} y.o.)";
     }
 }

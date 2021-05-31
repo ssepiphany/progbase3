@@ -4,7 +4,7 @@ using System.IO;
 
 public class UsersWindow : Window
 {
-    public string title = "User DB";
+    private string title = "Users";
     private ListView allUsersListView;
     private Label emptyListLbl;
     private int page = 1;
@@ -17,9 +17,10 @@ public class UsersWindow : Window
     private NStack.ustring[] options;
     private RadioGroup typeGroup; 
     public int selectedItem;
-    private MovieRepository movieRepository;
-    private ActorRepository actorRepository;
     private ReviewRepository reviewRepository;
+    private User currentUser;
+    private Label currentUsername;
+    private Button createNewUser; 
     public UsersWindow()
     {
         MenuBar menu = new MenuBar
@@ -40,10 +41,10 @@ public class UsersWindow : Window
 
         this.Title = this.title;
 
-        options = new NStack.ustring[]{"movies", "actors", "users", "reviews"};
+        options = new NStack.ustring[]{"movies", "actors", "users", "my reviews"};
         typeGroup = new RadioGroup()
         {
-            X = Pos.AnchorEnd() - 10, Y = 2, RadioLabels = options, 
+            X = Pos.AnchorEnd() - 15, Y = 2, RadioLabels = options, 
         };
         typeGroup.SelectedItem = 2;
         typeGroup.SelectedItemChanged += OnSelectedItemChanged; 
@@ -80,16 +81,28 @@ public class UsersWindow : Window
 
         FrameView frameView = new FrameView("Users")
         {
-            X = 2, Y = 8, Width = Dim.Fill() - 1, Height =  Dim.Fill() - 3,
+            X = 2, Y = 8, Width = Dim.Fill() - 5, Height =  Dim.Fill() - 5,
         };
         frameView.Add(allUsersListView);
         frameView.Add(emptyListLbl);
         this.Add(frameView);
 
 
-        Button createNewUser = new Button(2, 4, "Create new user");
+        createNewUser = new Button(2, 4, "Create new user");
         createNewUser.Clicked += OnCreateButtonClicked;
         this.Add(createNewUser);
+
+        Label currentUserLbl = new Label("Current user:")
+        {
+            X = Pos.Percent(5), Y = Pos.Percent(95), Width = 15,
+        };
+
+        currentUsername = new Label("?")
+        {
+            X = Pos.Right(currentUserLbl) + 1, Y = Pos.Top(currentUserLbl), Width = 20, 
+        };
+
+        this.Add(currentUserLbl, currentUsername);
 
         // Button backBtn = new Button()
         // {
@@ -99,12 +112,16 @@ public class UsersWindow : Window
         // this.Add(backBtn);
     }
 
-    public void SetRepositories(MovieRepository movieRepository, UserRepository userRepository, ActorRepository actorRepository, ReviewRepository reviewRepository)
+    public void SetRepositories(UserRepository userRepository, ReviewRepository reviewRepository)
     {
         this.repo = userRepository;
-        this.movieRepository = movieRepository;
-        this.actorRepository = actorRepository;
         this.reviewRepository = reviewRepository;
+    }
+
+    public void SetCurrentUser(User user)
+    {
+        this.currentUser = user;
+        this.currentUsername.Text = user.login;
         this.ShowCurrentPage();
     }
 
@@ -112,12 +129,6 @@ public class UsersWindow : Window
     {
         this.selectedItem = args.SelectedItem;
         Application.RequestStop();
-    }
-
-    public void SetRepository(UserRepository repo)
-    {
-        this.repo = repo;
-        this.ShowCurrentPage();
     }
 
     private void OnQuit()
@@ -161,6 +172,7 @@ public class UsersWindow : Window
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         nextPageBtn.Visible = (page != totalPages) && (!isEmptyList);
+        this.createNewUser.Visible = this.currentUser.moderator;
     }
 
     private void OnCreateButtonClicked()
@@ -171,9 +183,13 @@ public class UsersWindow : Window
         if(!createUserDialog.canceled)
         {
             User user = createUserDialog.GetUser();
-            int id = repo.Insert(user);
-            user.id = id;
-            allUsersListView.SetSource(repo.GetPage(page, pageLength));
+            bool registered = Authentication.RegisterUser(user, repo);
+            if(!registered)
+            {
+                this.Title = MessageBox.ErrorQuery("Error", $"Username \"{user.login}\" already exist", "OK").ToString();
+                this.Title = title;
+            }
+            //allUsersListView.SetSource(repo.GetPage(page, pageLength));
             ShowCurrentPage();
             ProcessOpenUser(user);
         }
@@ -189,13 +205,15 @@ public class UsersWindow : Window
     {
         OpenUserDialog dialog = new OpenUserDialog();
         dialog.SetUser(user);
+        dialog.SetCurrentUser(this.currentUser);
 
         Application.Run(dialog);
 
         if(dialog.deleted)
         {
             bool result = repo.DeleteById(user.id);
-            if(result)
+            bool result2 = reviewRepository.DeleteAllByAuthorId(user.id);
+            if(result && result2)
             {
                 int pages = repo.GetTotalPages(pageLength);
                 if(page > pages && page > 1)
@@ -207,7 +225,7 @@ public class UsersWindow : Window
             }
             else
             {
-                MessageBox.ErrorQuery("Delete activity", "Can not delete activity", "OK");
+                MessageBox.ErrorQuery("Delete user", "Can not delete user", "OK");
             }
         }
 
@@ -220,7 +238,7 @@ public class UsersWindow : Window
             }
             else
             {
-                MessageBox.ErrorQuery("Edit activity", "Can not edit activity", "OK");
+                MessageBox.ErrorQuery("Edit user", "Can not edit user", "OK");
             }
         }
     }
@@ -274,7 +292,7 @@ public class UsersWindow : Window
     {
         Dialog dialog = new Dialog("About");
 
-        Label titleLbl = new Label("Activity database");
+        Label titleLbl = new Label("Movie database");
         dialog.Add(titleLbl);
 
         string info = File.ReadAllText("./about");

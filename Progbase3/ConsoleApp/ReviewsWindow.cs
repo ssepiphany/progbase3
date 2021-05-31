@@ -4,25 +4,29 @@ using System.IO;
 
 public class ReviewsWindow : Window
 {
-    public string title = "Review DB";
-    private ListView allReviewsListView;
-    private Label emptyListLbl;
-    private int page = 1;
-    private Label totalPagesLbl;
-    private Label pageLbl;
-    private Button prevPageBtn;
-    private Button nextPageBtn;
-    private int pageLength = 12;
-    private NStack.ustring[] options;
-    private RadioGroup typeGroup; 
+    public string title = "My review";
+    protected ListView allReviewsListView;
+    protected Label emptyListLbl;
+    protected int page = 1;
+    protected Label totalPagesLbl;
+    protected Label pageLbl;
+    protected Button prevPageBtn;
+    protected Button nextPageBtn;
+    protected int pageLength = 12;
+    protected NStack.ustring[] options;
+    protected RadioGroup typeGroup; 
     public int selectedItem;
-    private MovieRepository movieRepository;
-    private UserRepository userRepository;
-    private ActorRepository actorRepository;
-    private ReviewRepository reviewRepository;
+    protected MovieRepository movieRepository;
+    protected UserRepository userRepository;
+    protected ReviewRepository reviewRepository;
+    protected Label currentUsername;
+    protected User currentUser;
+    protected MenuBar menu;
+    protected Button createNewReview;
+    protected FrameView frameView;
     public ReviewsWindow()
     {
-        MenuBar menu = new MenuBar
+        menu = new MenuBar
         (new MenuBarItem[] 
         {
            new MenuBarItem ("_File", new MenuItem [] 
@@ -40,10 +44,10 @@ public class ReviewsWindow : Window
 
         this.Title = this.title;
 
-        options = new NStack.ustring[]{"movies", "actors", "users", "reviews"};
+        options = new NStack.ustring[]{"movies", "actors", "users", "my reviews"};
         typeGroup = new RadioGroup()
         {
-            X = Pos.AnchorEnd() - 10, Y = 2, RadioLabels = options, 
+            X = Pos.AnchorEnd() - 15, Y = 2, RadioLabels = options, 
         };
         typeGroup.SelectedItem = 3;
         typeGroup.SelectedItemChanged += OnSelectedItemChanged; 
@@ -54,7 +58,7 @@ public class ReviewsWindow : Window
         {
             Width = Dim.Fill(), Height = Dim.Fill(),
         };
-        allReviewsListView.OpenSelectedItem += OnOpenUser;
+        allReviewsListView.OpenSelectedItem += OnOpenReview;
 
         prevPageBtn = new Button(2, 6, "Prev");
         prevPageBtn.Clicked += OnPreviousPage;
@@ -78,51 +82,62 @@ public class ReviewsWindow : Window
             Text = "There are no reviews!", Width = Dim.Fill(), Height = Dim.Fill(), X = 2, Y = 2,
         };
 
-        FrameView frameView = new FrameView("Reviews")
+        frameView = new FrameView("Reviews")
         {
-            X = 2, Y = 8, Width = Dim.Fill() - 1, Height =  Dim.Fill() - 3,
+            X = 2, Y = 8, Width = Dim.Fill() - 5, Height =  Dim.Fill() - 5,
         };
         frameView.Add(allReviewsListView);
         frameView.Add(emptyListLbl);
         this.Add(frameView);
 
 
-        Button createNewReview = new Button(2, 4, "Create new review");
+        createNewReview = new Button(2, 4, "Add new review");
         createNewReview.Clicked += OnCreateButtonClicked;
         this.Add(createNewReview);
 
-        // Button backBtn = new Button()
-        // {
-        //     X = Pos.Center(), Y = Pos.Percent(98), Text = "Back",
-        // };
-        // backBtn.Clicked += OnQuit;
-        // this.Add(backBtn);
+        Label currentUserLbl = new Label("Current user:")
+        {
+            X = Pos.Percent(5), Y = Pos.Percent(95), Width = 15,
+        };
+
+        currentUsername = new Label("?")
+        {
+            X = Pos.Right(currentUserLbl) + 1, Y = Pos.Top(currentUserLbl), Width = 20, 
+        };
+
+        this.Add(currentUserLbl, currentUsername);
     }
 
-    private void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
+    protected void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
     {
         this.selectedItem = args.SelectedItem;
         Application.RequestStop();
     }
 
-    public void SetRepositories(MovieRepository movieRepository, UserRepository userRepository, ActorRepository actorRepository, ReviewRepository reviewRepository)
+    public void SetCurrentUser(User user)
     {
-        this.movieRepository = movieRepository;
-        this.userRepository = userRepository;
-        this.actorRepository = actorRepository;
-        this.reviewRepository = reviewRepository;
+        this.currentUser = user;
+        this.currentUsername.Text = currentUser.login;
         this.ShowCurrentPage();
     }
 
-    private void OnQuit()
+    public void SetRepositories(MovieRepository movieRepository, UserRepository userRepository, ReviewRepository reviewRepository)
     {
+        this.movieRepository = movieRepository;
+        this.userRepository = userRepository;
+        this.reviewRepository = reviewRepository;
+    }
+
+    protected void OnQuit()
+    {
+        this.selectedItem = -1;
         Application.RequestStop();
     }
 
 
-    private void OnNextPage()
+    protected virtual void OnNextPage()
     {
-        int totalPages = reviewRepository.GetTotalPages(pageLength);
+        int totalPages = reviewRepository.GetTotalPagesForAuthor(pageLength, currentUser.id);
         if(page >= totalPages)
         {
             return;
@@ -131,7 +146,7 @@ public class ReviewsWindow : Window
         this.ShowCurrentPage();
     }
 
-    private void OnPreviousPage()
+    protected void OnPreviousPage()
     {
         if(page == 1)
         {
@@ -141,22 +156,23 @@ public class ReviewsWindow : Window
         this.ShowCurrentPage();
     }
 
-    private void ShowCurrentPage()
+    protected virtual void ShowCurrentPage()
     {
-        bool isEmptyList = (this.reviewRepository.GetCount() == 0);
-        int totalPages = reviewRepository.GetTotalPages(pageLength);
+        this.currentUser.reviews = reviewRepository.GetAllByAuthorId(this.currentUser.id);
+        bool isEmptyList = ( this.currentUser.reviews.Count == 0);
+        int totalPages = reviewRepository.GetTotalPagesForAuthor(pageLength, this.currentUser.id);
         this.pageLbl.Visible = !isEmptyList;
         this.pageLbl.Text = page.ToString();
         this.totalPagesLbl.Text = totalPages.ToString();
         this.totalPagesLbl.Visible = !isEmptyList;
         this.allReviewsListView.Visible = !isEmptyList;
-        this.allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
+        this.allReviewsListView.SetSource(reviewRepository.GetAuthorPage(page, pageLength, this.currentUser.id));
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         nextPageBtn.Visible = (page != totalPages) && (!isEmptyList);
     }
 
-    private void OnCreateButtonClicked()
+    protected virtual void OnCreateButtonClicked()
     {
         CreateReviewDialog createReviewDialog = new CreateReviewDialog();
         createReviewDialog.SetRepositories(ref movieRepository, ref userRepository);
@@ -165,53 +181,43 @@ public class ReviewsWindow : Window
         if(!createReviewDialog.canceled)
         {
             Review review = createReviewDialog.GetReview();
+            review.userId = this.currentUser.id;
             int id = reviewRepository.Insert(review);
             review.id = id;
-            allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
+            //allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
             ShowCurrentPage();
             ProcessOpenReview(review);
         }
     }
 
-    private void OnOpenUser(ListViewItemEventArgs args)
+    protected void OnOpenReview(ListViewItemEventArgs args)
     {
         Review review = (Review)args.Value;
         ProcessOpenReview(review);
     }
 
-    private void ProcessOpenReview(Review review)
+    protected void ProcessOpenReview(Review review)
     {
         OpenReviewDialog dialog = new OpenReviewDialog();
         dialog.SetRepositories(ref movieRepository, ref userRepository);
         dialog.SetReview(review);
+        dialog.SetUser(this.currentUser);
 
         Application.Run(dialog);
 
         if(dialog.deleted)
         {
-            bool result = reviewRepository.DeleteById(review.id);
-            if(result)
-            {
-                int pages = reviewRepository.GetTotalPages(pageLength);
-                if(page > pages && page > 1)
-                {
-                    page--;
-                }
-                allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
-                this.ShowCurrentPage();
-            }
-            else
-            {
-                MessageBox.ErrorQuery("Delete review", "Can not delete review", "OK");
-            }
+            TryDeleteReview(review);
         }
 
         if(dialog.updated)
         {
+            dialog.review.userId = this.currentUser.id;
             bool result = reviewRepository.Update(review.id, dialog.review);
             if(result)
             {
-                allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
+                //allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
+                this.ShowCurrentPage();
             }
             else
             {
@@ -220,7 +226,25 @@ public class ReviewsWindow : Window
         }
     }
 
-    private void OnExport()
+    protected virtual void TryDeleteReview(Review review)
+    {
+        bool result = reviewRepository.DeleteById(review.id);
+        if(result)
+        {
+            int pages = reviewRepository.GetTotalPagesForAuthor(pageLength, this.currentUser.id);
+            if(page > pages && page > 1)
+            {
+                page--;
+            }
+            this.ShowCurrentPage();
+        }
+        else
+        {
+            MessageBox.ErrorQuery("Delete review", "Can not delete review", "OK");
+        }
+    }
+
+    protected void OnExport()
     {
         ExportDialog exportDialog = new ExportDialog();
         exportDialog.SetRepositories(userRepository, reviewRepository);
@@ -233,7 +257,7 @@ public class ReviewsWindow : Window
         }
     }
 
-    private void OnImport()
+    protected void OnImport()
     {
         ImportDialog importDialog = new ImportDialog();
         importDialog.SetRepositories(userRepository, reviewRepository);
@@ -265,11 +289,11 @@ public class ReviewsWindow : Window
         }
     }
 
-    private void OnAbout()
+    protected void OnAbout()
     {
         Dialog dialog = new Dialog("About");
 
-        Label titleLbl = new Label("Activity database");
+        Label titleLbl = new Label("Movie database");
         dialog.Add(titleLbl);
 
         string info = File.ReadAllText("./about");

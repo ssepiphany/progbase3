@@ -45,6 +45,25 @@ public class MovieRepository
         return list ;  
     }
 
+    public Movie GetByTitle(string title)
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM movies WHERE title = $title";
+        command.Parameters.AddWithValue("$title" , title) ; 
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        if ( reader.Read())
+        {
+            Movie movie = ReadMovie(reader) ; 
+            reader.Close() ; 
+            return movie ;
+        } 
+        else
+        {
+            reader.Close() ; 
+            return null; 
+        } 
+    }
+
     public Movie GetByReviewId(int id)
     {
         SqliteCommand command = connection.CreateCommand(); 
@@ -96,7 +115,7 @@ public class MovieRepository
     public int DeleteByActorId(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
-        command.CommandText = @"DELETE * FROM actors, movies, movieActors
+        command.CommandText = @"DELETE FROM actors, movies, movieActors
             WHERE movieActors.movieId = movies.id
             AND movieActors.actorId = actors.Id
             AND actor.id = $id"; 
@@ -108,7 +127,7 @@ public class MovieRepository
     public int DeleteByReviewId(int id)
     {
         SqliteCommand command = connection.CreateCommand() ;  
-        command.CommandText = @"DELETE * FROM movies CROSS JOIN reviews
+        command.CommandText = @"DELETE FROM movies CROSS JOIN reviews
             WHERE movies.id = reviews.movieId AND reviews.id = $id";
         command.Parameters.AddWithValue("$id" , id) ; 
         int res = command.ExecuteNonQuery() ; 
@@ -137,6 +156,11 @@ public class MovieRepository
         return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
     }
 
+    public int GetTotalPagesForActor(int pageLength, int actorId)
+    {
+        return (int)Math.Ceiling(this.GetCountForActor(actorId) / (float)pageLength) ; 
+    }
+
     public List<Movie> GetPage(int pageNum, int pageLength)
     {
         if(pageNum < 1)
@@ -147,6 +171,31 @@ public class MovieRepository
         List<Movie> page = new List<Movie>();
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText = @"SELECT * FROM movies LIMIT $pageLength OFFSET $offset" ; 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            Movie movie = ReadMovie(reader) ; 
+            page.Add(movie); 
+        }
+        reader.Close() ; 
+        return page ; 
+    }
+
+    public List<Movie> GetPageForActor(int pageNum, int pageLength, int actorId)
+    {
+        if(pageNum < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<Movie> page = new List<Movie>();
+        SqliteCommand command = connection.CreateCommand() ; 
+        command.CommandText = @"SELECT * FROM movies CROSS JOIN movieActors 
+            WHERE movies.id = movieActors.movieId AND actorId = $actorId
+            LIMIT $pageLength OFFSET $offset" ; 
+        command.Parameters.AddWithValue("$actorId" , actorId); 
         command.Parameters.AddWithValue("$pageLength" , pageLength) ;
         command.Parameters.AddWithValue("$offset" , offset) ;
         SqliteDataReader reader = command.ExecuteReader() ; 
@@ -191,7 +240,17 @@ public class MovieRepository
         return count;
     }
 
-    public int ConnectWithActors(int movieId, int actorId)
+    public long GetCountForActor(int actorId)
+    {
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM movies CROSS JOIN movieActors
+            WHERE movies.id = movieActors.movieId AND actorId = $actorId"; 
+        command.Parameters.AddWithValue("$actorId" , actorId); 
+        long count = (long)command.ExecuteScalar();
+        return count;
+    }
+
+    public int ConnectMovieActor(int movieId, int actorId)
     {
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText =
@@ -204,5 +263,15 @@ public class MovieRepository
         command.Parameters.AddWithValue("$actorId" , actorId); 
         long newId = (long)command.ExecuteScalar() ;
         return (int)newId ; 
+    }
+
+    public bool RemoveConnectionsWithMovie(int movieId)
+    {
+        SqliteCommand command = connection.CreateCommand() ;  
+        command.CommandText = @"DELETE FROM movieActors
+            WHERE movieId = $movieId";
+        command.Parameters.AddWithValue("$movieId" , movieId) ; 
+        int res = command.ExecuteNonQuery() ; 
+        return res == 1; 
     }
 }

@@ -9,14 +9,14 @@ public class CreateReviewDialog : Dialog
     protected TextField scoreInput;
     protected DateField dateInput;
     protected TimeField timeInput;
-    protected TextField movieIdInput;
+    protected TextField movieTitleInput;
     public MovieRepository movieRepo;
     public UserRepository userRepo;
-    protected TextField userIdInput;
+    // protected TextField userIdInput;
     protected Label createdAtLbl;
     public CreateReviewDialog()
     {
-        this.dialogTitle = "Create review";
+        this.dialogTitle = "Add review";
         this.Title = this.dialogTitle;
         Button okBtn = new Button("OK");
         okBtn.Clicked += OnCreateDialogSubmit;
@@ -36,21 +36,21 @@ public class CreateReviewDialog : Dialog
         };
         this.Add(scoreLbl, scoreInput);
 
-        Label movieIdLbl = new Label(2, 6, "Movie id:");
-        movieIdInput = new TextField()
+        Label movieTitleLbl = new Label(2, 6, "Movie title:");
+        movieTitleInput = new TextField()
         {
-            X = rightColumn, Y = Pos.Top(movieIdLbl), Width = 40
+            X = rightColumn, Y = Pos.Top(movieTitleLbl), Width = 40
         };
-        this.Add(movieIdLbl, movieIdInput); 
+        this.Add(movieTitleLbl, movieTitleInput); 
 
-        Label userIdLbl = new Label(2, 8, "User id:");
-        userIdInput = new TextField()
-        {
-            X = rightColumn, Y = Pos.Top(userIdLbl), Width = 40
-        };
-        this.Add(userIdLbl, userIdInput);        
+        // Label userIdLbl = new Label(2, 8, "User id:");
+        // userIdInput = new TextField()
+        // {
+        //     X = rightColumn, Y = Pos.Top(userIdLbl), Width = 40
+        // };
+        // this.Add(userIdLbl, userIdInput);        
 
-        createdAtLbl = new Label(2, 10, "Created at:");
+        createdAtLbl = new Label(2, 8, "Created at:");
         dateInput = new DateField()
         {
             X = rightColumn, Y = Pos.Top(createdAtLbl), Date = DateTime.Now, Width = 12, ReadOnly = true,
@@ -69,9 +69,8 @@ public class CreateReviewDialog : Dialog
     {
         Review review = new Review();
         review.value = int.Parse(scoreInput.Text.ToString());
-        review.movieId = int.Parse(movieIdInput.Text.ToString());
+        review.movieId = movieRepo.GetByTitle(movieTitleInput.Text.ToString()).id;
         review.createdAt = dateInput.Date + timeInput.Time;
-        review.userId = int.Parse(userIdInput.Text.ToString());
         review.imported = false;
         return review;
     }
@@ -80,6 +79,12 @@ public class CreateReviewDialog : Dialog
     {
         this.movieRepo = movieRepo;
         this.userRepo = userRepo;
+    }
+
+    public  void SetMovie(Movie movie)
+    {
+        movieTitleInput.Text = movie.title;
+        movieTitleInput.ReadOnly = true;
     }
 
     private void OnCreateDialogCanceled()
@@ -101,7 +106,7 @@ public class CreateReviewDialog : Dialog
 
     public bool ValidateInput()
     {
-        if(this.scoreInput.Text.IsEmpty || this.movieIdInput.Text.IsEmpty || this.userIdInput.Text.IsEmpty)
+        if(this.scoreInput.Text.IsEmpty || this.movieTitleInput.Text.IsEmpty)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to input all fields", "OK").ToString();
             return false;
@@ -112,31 +117,31 @@ public class CreateReviewDialog : Dialog
             this.Title = MessageBox.ErrorQuery("Error", "Invalid score value", "OK").ToString();
             return false;
         }
-        int u;
-        if(!int.TryParse(this.userIdInput.Text.ToString(), out u))
-        {
-            this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
-            return false;
-        }
-        if(this.userRepo.GetById(u) == null)
-        {
-            this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
-            return false;
-        }
+        // int u;
+        // if(!int.TryParse(this.userIdInput.Text.ToString(), out u))
+        // {
+        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
+        //     return false;
+        // }
+        // if(this.userRepo.GetById(u) == null)
+        // {
+        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
+        //     return false;
+        // }
         if(d < 1 || d > 10)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Invalid score value", "OK").ToString();
             return false;
         }
-        int i;
-        if(!int.TryParse(this.movieIdInput.Text.ToString(), out i))
+        // int i;
+        // if(!int.TryParse(this.movieTitleInput.Text.ToString(), out i))
+        // {
+        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid movie id", "OK").ToString();
+        //     return false;
+        // }
+        if(this.movieRepo.GetByTitle(this.movieTitleInput.Text.ToString()) == null)
         {
-            this.Title = MessageBox.ErrorQuery("Error", "Invalid movie id", "OK").ToString();
-            return false;
-        }
-        if(this.movieRepo.GetById(i) == null)
-        {
-            this.Title = MessageBox.ErrorQuery("Error", "Invalid movie id", "OK").ToString();
+            this.Title = MessageBox.ErrorQuery("Error", "Invalid movie title", "OK").ToString();
             return false;
         }
         return true;
