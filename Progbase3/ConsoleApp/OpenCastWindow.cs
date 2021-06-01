@@ -7,7 +7,7 @@ public class OpenCastWindow : ActorsWindow
     {
         this.title = "View cast";
         this.Title = this.title;
-        this.menu.Visible = false;
+        // this.menu.Visible = false;
 
        createNewActor.Text = "Add new cast member";
        typeGroup.Visible = false;
@@ -24,6 +24,12 @@ public class OpenCastWindow : ActorsWindow
     {
         this.movie = movie;
         this.frameView.Title = $"\"{movie.title}\" cast";
+    }
+
+    protected void OnQuit()
+    {
+        this.selectedItem = -1;
+        Application.RequestStop();
     }
 
     public void SetRepositories(ActorRepository actorRepo, MovieRepository movieRepository)

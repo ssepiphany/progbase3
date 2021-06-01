@@ -2,12 +2,9 @@ using Terminal.Gui;
 
 public class ImportDialog : Dialog
 {
-    private UserRepository userRepository;
     private string dialogTitle;
     public bool canceled;
-    private ReviewRepository reviewRepository;
-    public TextField filePathInput;
-    public User user;
+    private TextField filePathInput;
     public ImportDialog()
     {
         this.dialogTitle = "Import";
@@ -37,28 +34,26 @@ public class ImportDialog : Dialog
 
         filePathInput = new TextField()
         {
-            X = rightColumn, Y = Pos.Top(fileLabel), Width = Dim.Fill() - 3, Text = "not selected",
+            X = rightColumn, Y = Pos.Top(fileLabel), Width = Dim.Fill() - 3, Text = "not selected", ReadOnly = true, 
         };
         this.Add(filePathInput);
 
-        Button chooseFileBtn = new Button("choose file")
+        Button chooseFileBtn = new Button("select file")
         {
-            X = 6, Y = Pos.Top(fileLabel) + 3, Width = 20,
+            X = 6, Y = Pos.Top(fileLabel) + 3, Width = 15,
         };
         chooseFileBtn.Clicked += OnChooseFile;
         this.Add(fileLabel, chooseFileBtn);
     }
 
-    public void SetRepositories(UserRepository userRepository, ReviewRepository reviewRepository)
+    public string GetFilePath()
     {
-        this.userRepository = userRepository;
-        this.reviewRepository = reviewRepository;
+       return this.filePathInput.Text.ToString();
     }
-
 
     private void OnChooseFile()
     {
-        OpenDialog chooseFileDialog = new OpenDialog("Choose file", "");
+        OpenDialog chooseFileDialog = new OpenDialog("Select file", "");
         chooseFileDialog.CanChooseDirectories = false;
         chooseFileDialog.CanChooseFiles = true;
 
@@ -67,7 +62,7 @@ public class ImportDialog : Dialog
         if(!chooseFileDialog.Canceled)
         {
             NStack.ustring filePath = chooseFileDialog.FilePath;
-            filePathInput.Text = filePath;
+            this.filePathInput.Text = filePath;
         }
     }
 
@@ -87,7 +82,7 @@ public class ImportDialog : Dialog
     {
         if(this.filePathInput.Text == "not selected")
         {
-            this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to choose file", "OK").ToString();
+            this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to select file", "OK").ToString();
             return false;
         }
         return true;

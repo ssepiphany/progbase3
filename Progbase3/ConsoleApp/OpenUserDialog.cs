@@ -5,7 +5,7 @@ public class OpenUserDialog : Dialog
 {
     public bool deleted;
     public bool updated;
-    public User user;
+    private User user;
     private TextField idInput;
     private string dialogTitle;
     private TextField fullnameInput;
@@ -108,6 +108,11 @@ public class OpenUserDialog : Dialog
         this.fullnameInput.Text = user.fullname;
         this.loginInput.Text = user.login;
         this.dateInput.Text = user.createdAt.ToString("F");
+    }
+
+    public User GetUser()
+    {
+        return this.user;
     }
 
     private void OnOpenDialogSubmit()

@@ -8,13 +8,17 @@ public static class ExportImport
     public static void Export(User user, string dirPath)
     {
         string startPath = @"./xmlFiles";
+        if(!Directory.Exists(startPath))
+        {
+            Directory.CreateDirectory(startPath);
+        }
         List<Review> reviews = user.reviews;
         ReviewRoot rRoot = new ReviewRoot();
         rRoot.userId = reviews[0].userId;
         rRoot.reviews = reviews;
         SerializeData<ReviewRoot>(rRoot, startPath + "/reviews.xml");
         MovieRoot mRoot = new MovieRoot();
-        mRoot.movies = GetMovieList(ref reviews);;
+        mRoot.movies = GetMovieList(ref reviews);
         SerializeData<MovieRoot>(mRoot, startPath + "/movies.xml");
 
        string zipPath = dirPath + @"/result.zip";

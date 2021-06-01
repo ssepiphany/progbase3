@@ -9,7 +9,7 @@ public class OpenMovieReviewsWindow : ReviewsWindow
     {
         this.title = "View reviews";
         this.Title = this.title;
-        this.menu.Visible = false;
+        // this.menu.Visible = false;
 
        createNewReview.Text = "Add new review";
        typeGroup.Visible = false;
@@ -20,6 +20,12 @@ public class OpenMovieReviewsWindow : ReviewsWindow
         };
         backBtn.Clicked += OnQuit;
         this.Add(backBtn);
+    }
+
+    protected void OnQuit()
+    {
+        this.selectedItem = -1;
+        Application.RequestStop();
     }
 
     public void SetMovie(Movie movie)

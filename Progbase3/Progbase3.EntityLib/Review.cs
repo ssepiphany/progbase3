@@ -7,7 +7,6 @@ public class Review
     public int value;
     [XmlElement("movie_id")]
     public int movieId;
-    public string comment;
     [XmlElement("created_at")]
     public DateTime createdAt;
     [XmlIgnore]
@@ -18,6 +17,7 @@ public class Review
     public Movie movie;
     [XmlIgnore]
     public bool imported;
+    [XmlIgnore]
     public int outputFormat;
 
     public override string ToString()

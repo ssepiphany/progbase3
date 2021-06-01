@@ -1,6 +1,11 @@
 using Terminal.Gui;
 using System.Collections.Generic;
 using System.IO;
+using ScottPlot;
+using System.IO.Compression;
+using System.Xml;
+using System.Xml.Linq;
+using System;
 
 public class MoviesWindow : Window
 {
@@ -24,25 +29,27 @@ public class MoviesWindow : Window
     protected User currentUser;
     protected Label currentUsername;
     protected Button createNewMovie;
-    protected MenuBar menu;
+    // protected MyMenu menu;
     protected FrameView frameView;
     public MoviesWindow()
     {
-        menu = new MenuBar
-        (new MenuBarItem[] 
-        {
-           new MenuBarItem ("_File", new MenuItem [] 
-           {
-               new MenuItem ("_Export", "", OnExport),
-               new MenuItem ("_Import", "", OnImport),
-               new MenuItem ("_Exit", "", OnQuit),
-           }),
-           new MenuBarItem ("_Help", new MenuItem [] 
-           {
-               new MenuItem ("_About", "", OnAbout)
-           }),
-        });
-       this.Add(menu);
+        // menu = new MenuBar
+        // (new MenuBarItem[] 
+        // {
+        //    new MenuBarItem ("_File", new MenuItem [] 
+        //    {
+        //        new MenuItem ("_Export", "", OnExport),
+        //        new MenuItem ("_Import", "", OnImport),
+        //        new MenuItem ("_Generate report", "", OnGenerateReport),
+        //        new MenuItem ("_Generate histogram", "", OnGenerateHistogram),
+        //        new MenuItem ("_Exit", "", OnQuit),
+        //    }),
+        //    new MenuBarItem ("_Help", new MenuItem [] 
+        //    {
+        //        new MenuItem ("_About", "", OnAbout)
+        //    }),
+        // });
+    //    this.Add(menu);
 
         this.Title = this.title;
 
@@ -116,13 +123,20 @@ public class MoviesWindow : Window
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
         this.actorRepository = actorRepository;
+        // menu.SetRepositories(repo, userRepository, actorRepository, reviewRepository);
     }
 
     public void SetCurrentUser(User user)
     {
         this.currentUser = user;
         this.currentUsername.Text = user.login;
+        // menu.SetCurrentUser(currentUser);
         this.ShowCurrentPage();
+    }
+
+    public string GetWindowTitle()
+    {
+        return this.title;
     }
 
     protected void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
@@ -135,6 +149,177 @@ public class MoviesWindow : Window
     {
         this.selectedItem = -1;
         Application.RequestStop();
+    }
+
+    protected void OnGenerateHistogram()
+    {
+        // var plt = new ScottPlot.Plot(600, 400);
+
+        // Random rand = new Random(0);
+        // double[] values = DataGen.RandomNormal(rand, pointCount: 1000, mean: 50, stdDev: 20);
+        // var hist = new ScottPlot.Statistics.Histogram(values, min: 0, max: 100);
+
+        // double barWidth = hist.binSize * 1.2; // slightly over-side to reduce anti-alias rendering artifacts
+
+        // plt.PlotBar(hist.bins, hist.countsFrac, barWidth: barWidth, outlineWidth: 0);
+        // plt.PlotScatter(hist.bins, hist.countsFracCurve, markerSize: 0, lineWidth: 2, color: System.Drawing.Color.Black);
+        // double[] curveXs = DataGen.Range(pop.minus3stDev, pop.plus3stDev, .1);
+        // double[] curveYs = pop.GetDistribution(curveXs);
+        // plt.PlotScatter(curveXs, curveYs, markerSize: 0, lineWidth: 2);
+        // plt.Legend();
+        // plt.Title("Normal Random Data");
+        // plt.YLabel("Frequency (fraction)");
+        // plt.XLabel("Value (units)");
+        // // plt.Axis(null, null, 0, null);
+        // plt.SetAxisLimits(null, null, 0, null);
+        // plt.Grid(lineStyle: LineStyle.Dot);
+
+        // plt.SaveFig("Advanced_Statistics_Histogram.png");
+
+        var plt = new ScottPlot.Plot(600, 400);
+
+        Dictionary<int, int> scoresFrequency =  reviewRepository.GetReviewsForHistogram(this.currentUser);
+        List<Review> reviews = reviewRepository.GetAllByAuthorId(this.currentUser.id);
+        double[] values = new double[reviews.Count];
+        Dictionary<int, int>.KeyCollection keys = scoresFrequency.Keys;  
+        int c = 0;
+        // for (int i = 0; i < reviews.Count ; i++)
+        // {
+        //     values[i] = reviews[i].value;
+        // }
+        foreach (int key in keys)
+        {
+            values[c] = key;
+            c++;
+        }
+        var hist = new ScottPlot.Statistics.Histogram(values, min: 0, max: 11);
+
+        // // c = 0;
+
+
+        foreach (int key in keys)
+        {
+            hist.countsFrac.SetValue( scoresFrequency[key],key);
+        }
+
+        
+        double barWidth = hist.binSize;
+
+        plt.PlotBar(hist.bins, hist.countsFrac, barWidth: barWidth, outlineWidth: 0);
+        // plt.AddBar(hist.bins, hist.counts);
+        plt.PlotScatter(hist.bins, hist.countsFracCurve, markerSize: 2, lineWidth: 2, color: System.Drawing.Color.Black);
+        // plt.AddScatter(hist.bins, hist.countsFracCurve, markerSize: 0, lineWidth: 2, color: System.Drawing.Color.Black);
+        plt.Title("Frequency of reviews' scores");
+        plt.YLabel("Frequency (fraction)");
+        plt.XLabel("Value (units)");
+        // plt.Axis(null, null, 0, null);
+        plt.SetAxisLimits(null, null, 0, null);
+        plt.Grid(lineStyle: LineStyle.Dot);
+        string imagePath = "./histogram.png";
+
+        plt.SaveFig(imagePath);
+        // // return imagePath;
+    }
+
+    protected void OnGenerateReport()
+    {
+        string zipPath = @"../../data/template.docx";
+        string extractPath = @"../../data/template";
+        ZipFile.ExtractToDirectory(zipPath, extractPath);
+        GenerateReportDialog dialog = new GenerateReportDialog();
+        Application.Run(dialog);
+        string dirPath = dialog.GetDirPath();
+        if(!Directory.Exists(dirPath))
+        {
+            Directory.CreateDirectory(dirPath);
+        }
+        XElement root = XElement.Load("../../data/template/word/document.xml");
+        List<Review> reviews = reviewRepository.GetAllByAuthorId(this.currentUser.id);
+        bool empty = (reviews.Count == 0);
+        Review highestScoreReview = null;
+        Review lowestScoreReview = null;
+        string imagePath = "../../data/template/word/media/image1.png";
+        if(!empty)
+        {
+            highestScoreReview = reviewRepository.GetUserHighestScoreReview(reviews);
+            lowestScoreReview = reviewRepository.GetUserLowestScoreReview(reviews);
+
+            // string histogramPath = this.OnGenerateHistogram();
+            // File.Copy(histogramPath, imagePath, true);
+        }
+        else
+        {
+            File.Delete(imagePath);
+        }
+       Dictionary<string, string> dict = new Dictionary<string, string>
+       {
+           {"x1", this.currentUser.fullname},
+           {"x2", this.currentUser.login},
+           {"x3", this.currentUser.createdAt.ToString("F")},
+           {"x4", reviews.Count.ToString()},
+           {"x5", (empty) ? "-": reviewRepository.GetUserAverageScore(this.currentUser).ToString()},
+           {"x6", (empty) ? "-": highestScoreReview.id.ToString()},
+           {"x7", (empty) ? "-": highestScoreReview.value.ToString()},
+           {"x8", (empty) ? "-": $"\"{repo.GetByReviewId(highestScoreReview.id).title}\""},
+           {"x9", (empty) ? "-": highestScoreReview.createdAt.ToString("F")},
+            {"x10", (empty) ? "-": lowestScoreReview.id.ToString()},
+           {"x11", (empty) ? "-": lowestScoreReview.value.ToString()},
+           {"x12", (empty) ? "-": $"\"{repo.GetByReviewId(lowestScoreReview.id).title}\""},
+           {"x13", (empty) ? "-": lowestScoreReview.createdAt.ToString("F")},
+
+        };
+ 
+      FindAndReplace(root, dict);
+      root.Save("../../data/template/word/document.xml", SaveOptions.DisableFormatting);
+
+
+        bool exported = false;
+        int c = 2;
+        string zipPath2 = dirPath + "/template(1).docx";
+
+       while(!exported)
+       {
+           try
+            {
+                ZipFile.CreateFromDirectory("../../data/template", zipPath2);
+                exported = true;
+            }
+            catch
+            {
+                zipPath2 = dirPath + $"/template({c}).docx";
+                c++;
+            }
+       }
+       Directory.Delete(extractPath, true);
+    }
+
+    // protected string FormatOutput(Review review)
+    // {
+    //     string[] parts = new string[4];
+    //     parts[0] = "id: " + review.id;
+    //     parts[1] = "score: " + review.value.ToString();
+    //     parts[2] = $"movie title: \"{repo.GetByReviewId(review.id).title}\"";
+    //     parts[3] = "created at: " + review.createdAt.ToString("F");
+    //     string res = string.Join(System.Environment.NewLine, parts);
+    //     return res;
+    // }
+
+    protected void FindAndReplace(XElement node, Dictionary<string, string> dict)
+    {
+        if (node.FirstNode != null
+            && node.FirstNode.NodeType == XmlNodeType.Text)
+        {
+            string replacement;
+            if (dict.TryGetValue(node.Value, out replacement))
+            {
+                node.Value = replacement;
+            }
+        }
+        foreach (XElement el in node.Elements())
+        {
+            FindAndReplace(el, dict);
+        }
+
     }
 
 
@@ -244,75 +429,5 @@ public class MoviesWindow : Window
         {
             MessageBox.ErrorQuery("Delete movie", "Can not delete movie", "OK");
         }
-    }
-
-    protected void OnExport()
-    {
-        ExportDialog exportDialog = new ExportDialog();
-        exportDialog.SetRepositories(userRepository, reviewRepository);
-
-        Application.Run(exportDialog);
-
-        if(!exportDialog.canceled)
-        {
-            ExportImport.Export(exportDialog.user, exportDialog.dirPathInput.Text.ToString());
-        }
-    }
-
-    protected void OnImport()
-    {
-        ImportDialog importDialog = new ImportDialog();
-        importDialog.SetRepositories(userRepository, reviewRepository);
-
-        Application.Run(importDialog);
-
-        if(!importDialog.canceled)
-        {
-            ReviewRoot root = ExportImport.Import(importDialog.filePathInput.Text.ToString());
-            if(root == null)
-            {
-                this.Title = MessageBox.ErrorQuery("Error", "Something went wrong.\r\nPlease, make sure to choose valid file format", "OK").ToString();
-                this.Title = this.title ;
-                return;
-            }
-            for(int i = 0; i < root.reviews.Count; i++)
-            {
-                root.reviews[i].imported = true;
-                root.reviews[i].userId = root.userId;
-                if(reviewRepository.GetById(root.reviews[i].id) != null)
-                {
-                    reviewRepository.Update(root.reviews[i].id, root.reviews[i]);
-                }
-                else
-                {
-                    reviewRepository.Insert(root.reviews[i]);
-                }
-            }
-        }
-    }
-
-    protected void OnAbout()
-    {
-        Dialog dialog = new Dialog("About");
-
-        Label titleLbl = new Label("Movie database");
-        dialog.Add(titleLbl);
-
-        string info = File.ReadAllText("./about");
-        TextView text = new TextView()
-        {
-            X = Pos.Center(), Y = Pos.Center(), Width = Dim.Percent(50), 
-            Height = Dim.Percent(50), Text = info, ReadOnly = true,
-        };
-        dialog.Add(text);
-
-        Button okBtn = new Button()
-        {
-            X = Pos.AnchorEnd(), Y = 0, Text = "OK",
-        };
-        okBtn.Clicked += OnQuit;
-        dialog.AddButton(okBtn);
-
-        Application.Run(dialog);
     }
 }

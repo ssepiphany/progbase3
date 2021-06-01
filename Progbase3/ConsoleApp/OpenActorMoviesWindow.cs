@@ -7,7 +7,7 @@ public class OpenActorMoviesWindow : MoviesWindow
     {
         this.title = "View movies";
         this.Title = this.title;
-        this.menu.Visible = false;
+        // this.menu.Visible = false;
 
        createNewMovie.Text = "Add new movie";
        typeGroup.Visible = false;

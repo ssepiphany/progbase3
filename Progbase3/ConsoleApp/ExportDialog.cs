@@ -2,13 +2,12 @@ using Terminal.Gui;
 
 public class ExportDialog : Dialog
 {
-    private UserRepository userRepository;
-    private string dialogTitle;
+    protected string dialogTitle;
     public bool canceled;
-    private ReviewRepository reviewRepository;
-    public TextField dirPathInput;
-    private TextField userIdInput;
-    public User user;
+    protected ReviewRepository reviewRepository;
+    protected TextField dirPathInput;
+    // private TextField userIdInput;
+    protected User currentUser;
     public ExportDialog()
     {
         this.dialogTitle = "Export";
@@ -31,17 +30,17 @@ public class ExportDialog : Dialog
         this.AddButton(okBtn);
 
 
-        Label userIdLabl = new Label("User id:")
-        {
-            X = 6, Y = 4, Width = 10,
-        };
+        // Label userIdLabl = new Label("User id:")
+        // {
+        //     X = 6, Y = 4, Width = 10,
+        // };
 
-        userIdInput = new TextField() 
-        {
-            X = rightColumn, Y = Pos.Top(userIdLabl) , Width = Dim.Fill() - 3, 
-        };
+        // userIdInput = new TextField() 
+        // {
+        //     X = rightColumn, Y = Pos.Top(userIdLabl) , Width = Dim.Fill() - 3, 
+        // };
 
-        this.Add(userIdInput, userIdLabl);
+        // this.Add(userIdInput, userIdLabl);
 
         Label dirLabel = new Label("Dir path:")
         {
@@ -54,7 +53,7 @@ public class ExportDialog : Dialog
         };
         this.Add(dirPathInput);
 
-        Button chooseDirBtn = new Button("choose directory")
+        Button chooseDirBtn = new Button("select directory")
         {
             X = 6, Y = Pos.Top(dirLabel) + 3, Width = 20,
         };
@@ -62,14 +61,22 @@ public class ExportDialog : Dialog
         this.Add(dirLabel, chooseDirBtn);
     }
 
-    public void SetRepositories(UserRepository userRepository, ReviewRepository reviewRepository)
+    public void SetRepositories(ReviewRepository reviewRepository)
     {
-        this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
     }
 
+    public void SetCurrentUser(ref User user)
+    {
+        this.currentUser = user;
+    }
 
-    private void OnChooseDirectory()
+    public string GetDirPath()
+    {
+        return this.dirPathInput.Text.ToString();
+    }
+
+    protected void OnChooseDirectory()
     {
         OpenDialog chooseFileDialog = new OpenDialog("Choose directory", "");
         chooseFileDialog.CanChooseDirectories = true;
@@ -86,18 +93,18 @@ public class ExportDialog : Dialog
 
     }
 
-    private void OnSubmit()
+    protected virtual void OnSubmit()
     {
         if(!this.ValidateInput())
         {
             this.Title = this.dialogTitle;
             return;
         }
-        this.user = reviewRepository.GetReviewsForExport(this.user);
+        this.currentUser = reviewRepository.GetReviewsForExport(this.currentUser);
 
-        if(this.user.reviews.Count == 0)
+        if(this.currentUser.reviews.Count == 0)
         {
-            this.Title = MessageBox.ErrorQuery("Error", $"Chosen user does not have any reviews", "OK").ToString();
+            this.Title = MessageBox.ErrorQuery("Error", $"You do not have any reviews", "OK").ToString();
             this.Title = this.dialogTitle;
             return;
         }
@@ -106,29 +113,29 @@ public class ExportDialog : Dialog
         Application.RequestStop();
     }
 
-    private bool ValidateInput()
+    protected bool ValidateInput()
     {
-        if(this.dirPathInput.Text == "not selected" || this.userIdInput.Text.IsEmpty)
+        if(this.dirPathInput.Text == "not selected")
         {
-            this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
+            this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to select directory", "OK").ToString();
             return false;
         }
-        int id;
-        if(!int.TryParse(userIdInput.Text.ToString(), out id))
-        {
-            this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
-            return false;
-        }
-        user = userRepository.GetById(id);
-        if(user == null)
-        {
-            this.Title = MessageBox.ErrorQuery("Error", "User was not found", "OK").ToString();
-            return false;
-        }
+        // int id;
+        // if(!int.TryParse(userIdInput.Text.ToString(), out id))
+        // {
+        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
+        //     return false;
+        // }
+        // user = userRepository.GetById(id);
+        // if(user == null)
+        // {
+        //     this.Title = MessageBox.ErrorQuery("Error", "User was not found", "OK").ToString();
+        //     return false;
+        // }
         return true;
     }
 
-    private void OnExit()
+    protected void OnExit()
     {
         this.canceled = true;
         Application.RequestStop();

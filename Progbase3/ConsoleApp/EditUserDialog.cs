@@ -32,5 +32,6 @@ public class EditUserDialog : CreateUserDialog
         this.fullnameInput.Text = user.fullname;
         this.loginInput.Text = user.login;
         this.dateText.Text = user.createdAt.ToString("F");
+        this.moderatorCheck.Checked = user.moderator;
     }
 }

@@ -309,18 +309,74 @@ public class ReviewRepository
         return review;
     }
 
-    public  Dictionary<double, int> GetReviewsForHistogram(User user)
+    public  Dictionary<int, int> GetReviewsForHistogram(User user)
     {
-        Dictionary<double, int> reviewFrequency = new Dictionary<double, int>();
+        Dictionary<int, int> reviewFrequency = new Dictionary<int, int>();
         List<Review> list = GetAllByAuthorId(user.id);
         for( int i = 0; i < list.Count; i++)
         {
             Review current = list[i];
             if (!reviewFrequency.TryAdd(current.value,1))
             {
-                reviewFrequency[list[i].value] += 1;
+                reviewFrequency[current.value] += 1;
             }
         }
         return reviewFrequency;
+    }
+
+    public double GetUserAverageScore(User user)
+    {
+        List<Review> reviews = this.GetAllByAuthorId(user.id);
+        int sum = 0; 
+        for (int i = 0; i < reviews.Count; i++)
+        {
+            sum += reviews[i].value;
+        }
+        double res = Math.Round((double) sum / reviews.Count, 1);
+        return res;
+    }
+
+    public Review GetUserHighestScoreReview(List<Review> reviews)
+    {
+        Sort(reviews, 0, reviews.Count - 1);
+        return reviews[reviews.Count - 1];
+    }
+
+    public Review GetUserLowestScoreReview(List<Review> reviews)
+    {
+        Sort(reviews, 0, reviews.Count - 1);
+        return reviews[0];
+    }
+
+    private void Sort(List<Review> reviews , int low, int high)
+    {
+        if (low < high)
+        {
+            int partitionIndex = Partition(reviews, low, high);
+            Sort(reviews, low, partitionIndex - 1);
+            Sort(reviews, partitionIndex + 1, high);
+        }
+    }
+
+    private int Partition(List<Review> reviews, int low, int high)
+    {
+        Review pivot = reviews[high];
+        int lowIndex = (low - 1);
+        for (int j = low; j < high; j++)
+        {
+            if (reviews[j].value <= pivot.value)
+            {
+                lowIndex++;
+
+                Review temp = reviews[lowIndex];
+                reviews[lowIndex] = reviews[j];
+                reviews[j] = temp;
+            }
+        }
+
+        Review temp1 = reviews[lowIndex + 1];
+        reviews[lowIndex + 1] = reviews[high];
+        reviews[high] = temp1;
+        return lowIndex + 1;
     }
 }

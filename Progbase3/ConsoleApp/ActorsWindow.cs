@@ -24,26 +24,9 @@ public class ActorsWindow : Window
     protected User currentUser;
     protected Label currentUsername;
     protected Button createNewActor;
-    protected MenuBar menu;
     protected FrameView frameView;
     public ActorsWindow()
     {
-        menu = new MenuBar
-        (new MenuBarItem[] 
-        {
-           new MenuBarItem ("_File", new MenuItem [] 
-           {
-               new MenuItem ("_Export", "", OnExport),
-               new MenuItem ("_Import", "", OnImport),
-               new MenuItem ("_Exit", "", OnQuit),
-           }),
-           new MenuBarItem ("_Help", new MenuItem [] 
-           {
-               new MenuItem ("_About", "", OnAbout)
-           }),
-        });
-       this.Add(menu);
-
         this.Title = this.title;
 
         options = new NStack.ustring[]{"movies", "actors", "users", "my reviews"};
@@ -115,6 +98,12 @@ public class ActorsWindow : Window
         Application.RequestStop();
     }
 
+    public string GetWindowTitle()
+    {
+        return this.title;
+    }
+
+
     public void SetCurrentUser(User user)
     {
         this.currentUser = user;
@@ -127,12 +116,6 @@ public class ActorsWindow : Window
         this.actorRepository = actorRepository;
         this.reviewRepository = reviewRepository;
         this.movieRepository = movieRepository;
-    }
-
-    protected void OnQuit()
-    {
-        this.selectedItem = -1;
-        Application.RequestStop();
     }
 
     protected virtual void OnNextPage()
@@ -241,75 +224,5 @@ public class ActorsWindow : Window
         {
             MessageBox.ErrorQuery("Delete actor", "Can not delete actor", "OK");
         }
-    }
-
-    protected void OnExport()
-    {
-        ExportDialog exportDialog = new ExportDialog();
-        exportDialog.SetRepositories(userRepository, reviewRepository);
-
-        Application.Run(exportDialog);
-
-        if(!exportDialog.canceled)
-        {
-            ExportImport.Export(exportDialog.user, exportDialog.dirPathInput.Text.ToString());
-        }
-    }
-
-    protected void OnImport()
-    {
-        ImportDialog importDialog = new ImportDialog();
-        importDialog.SetRepositories(userRepository, reviewRepository);
-
-        Application.Run(importDialog);
-
-        if(!importDialog.canceled)
-        {
-            ReviewRoot root = ExportImport.Import(importDialog.filePathInput.Text.ToString());
-            if(root == null)
-            {
-                this.Title = MessageBox.ErrorQuery("Error", "Something went wrong.\r\nPlease, make sure to choose valid file format", "OK").ToString();
-                this.Title = this.title ;
-                return;
-            }
-            for(int i = 0; i < root.reviews.Count; i++)
-            {
-                root.reviews[i].imported = true;
-                root.reviews[i].userId = root.userId;
-                if(reviewRepository.GetById(root.reviews[i].id) != null)
-                {
-                    reviewRepository.Update(root.reviews[i].id, root.reviews[i]);
-                }
-                else
-                {
-                    reviewRepository.Insert(root.reviews[i]);
-                }
-            }
-        }
-    }
-
-    protected void OnAbout()
-    {
-        Dialog dialog = new Dialog("About");
-
-        Label titleLbl = new Label("Movie database");
-        dialog.Add(titleLbl);
-
-        string info = File.ReadAllText("./about");
-        TextView text = new TextView()
-        {
-            X = Pos.Center(), Y = Pos.Center(), Width = Dim.Percent(50), 
-            Height = Dim.Percent(50), Text = info, ReadOnly = true,
-        };
-        dialog.Add(text);
-
-        Button okBtn = new Button()
-        {
-            X = Pos.AnchorEnd(), Y = 0, Text = "OK",
-        };
-        okBtn.Clicked += OnQuit;
-        dialog.AddButton(okBtn);
-
-        Application.Run(dialog);
     }
 }

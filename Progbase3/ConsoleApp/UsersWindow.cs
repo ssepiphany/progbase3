@@ -23,21 +23,21 @@ public class UsersWindow : Window
     private Button createNewUser; 
     public UsersWindow()
     {
-        MenuBar menu = new MenuBar
-        (new MenuBarItem[] 
-        {
-           new MenuBarItem ("_File", new MenuItem [] 
-           {
-               new MenuItem ("_Export", "", OnExport),
-               new MenuItem ("_Import", "", OnImport),
-               new MenuItem ("_Exit", "", OnQuit),
-           }),
-           new MenuBarItem ("_Help", new MenuItem [] 
-           {
-               new MenuItem ("_About", "", OnAbout)
-           }),
-        });
-       this.Add(menu);
+    //     MenuBar menu = new MenuBar
+    //     (new MenuBarItem[] 
+    //     {
+    //        new MenuBarItem ("_File", new MenuItem [] 
+    //        {
+    //            new MenuItem ("_Export", "", OnExport),
+    //            new MenuItem ("_Import", "", OnImport),
+    //            new MenuItem ("_Exit", "", OnQuit),
+    //        }),
+    //        new MenuBarItem ("_Help", new MenuItem [] 
+    //        {
+    //            new MenuItem ("_About", "", OnAbout)
+    //        }),
+    //     });
+    //    this.Add(menu);
 
         this.Title = this.title;
 
@@ -118,6 +118,12 @@ public class UsersWindow : Window
         this.reviewRepository = reviewRepository;
     }
 
+    public string GetWindowTitle()
+    {
+        return this.title;
+    }
+
+
     public void SetCurrentUser(User user)
     {
         this.currentUser = user;
@@ -128,12 +134,6 @@ public class UsersWindow : Window
     private void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
     {
         this.selectedItem = args.SelectedItem;
-        Application.RequestStop();
-    }
-
-    private void OnQuit()
-    {
-        this.selectedItem = -1;
         Application.RequestStop();
     }
 
@@ -231,7 +231,9 @@ public class UsersWindow : Window
 
         if(dialog.updated)
         {
-            bool result = repo.Update(user.id, dialog.user);
+            User user2 = dialog.GetUser();
+            user2.password = Authentication.HashPassword(user2.password);
+            bool result = repo.Update(user.id, user2);
             if(result)
             {
                 allUsersListView.SetSource(repo.GetPage(page, pageLength));
@@ -241,75 +243,5 @@ public class UsersWindow : Window
                 MessageBox.ErrorQuery("Edit user", "Can not edit user", "OK");
             }
         }
-    }
-
-    private void OnExport()
-    {
-        ExportDialog exportDialog = new ExportDialog();
-        exportDialog.SetRepositories(repo, reviewRepository);
-
-        Application.Run(exportDialog);
-
-        if(!exportDialog.canceled)
-        {
-            ExportImport.Export(exportDialog.user, exportDialog.dirPathInput.Text.ToString());
-        }
-    }
-
-    private void OnImport()
-    {
-        ImportDialog importDialog = new ImportDialog();
-        importDialog.SetRepositories(repo, reviewRepository);
-
-        Application.Run(importDialog);
-
-        if(!importDialog.canceled)
-        {
-            ReviewRoot root = ExportImport.Import(importDialog.filePathInput.Text.ToString());
-            if(root == null)
-            {
-                this.Title = MessageBox.ErrorQuery("Error", "Something went wrong.\r\nPlease, make sure to choose valid file format", "OK").ToString();
-                this.Title = this.title ;
-                return;
-            }
-            for(int i = 0; i < root.reviews.Count; i++)
-            {
-                root.reviews[i].imported = true;
-                root.reviews[i].userId = root.userId;
-                if(reviewRepository.GetById(root.reviews[i].id) != null)
-                {
-                    reviewRepository.Update(root.reviews[i].id, root.reviews[i]);
-                }
-                else
-                {
-                    reviewRepository.Insert(root.reviews[i]);
-                }
-            }
-        }
-    }
-
-    private void OnAbout()
-    {
-        Dialog dialog = new Dialog("About");
-
-        Label titleLbl = new Label("Movie database");
-        dialog.Add(titleLbl);
-
-        string info = File.ReadAllText("./about");
-        TextView text = new TextView()
-        {
-            X = Pos.Center(), Y = Pos.Center(), Width = Dim.Percent(50), 
-            Height = Dim.Percent(50), Text = info, ReadOnly = true,
-        };
-        dialog.Add(text);
-
-        Button okBtn = new Button()
-        {
-            X = Pos.AnchorEnd(), Y = 0, Text = "OK",
-        };
-        okBtn.Clicked += OnQuit;
-        dialog.AddButton(okBtn);
-
-        Application.Run(dialog);
     }
 }

@@ -11,12 +11,18 @@ public static class Authentication
         {
             return false;
         }
-        SHA256 sha256 = SHA256.Create();
-        user.password =  GetHash(sha256, user.password);
-        sha256.Dispose();
+        user.password = HashPassword(user.password);
         int id = userRepo.Insert(user);
         user.id = id;
         return true;
+    }
+
+    public static string HashPassword(string password)
+    {
+        SHA256 sha256 = SHA256.Create();
+        string res =  GetHash(sha256, password);
+        sha256.Dispose();
+        return res;
     }
 
     private static string GetHash(HashAlgorithm hashAlgorithm, string input)
