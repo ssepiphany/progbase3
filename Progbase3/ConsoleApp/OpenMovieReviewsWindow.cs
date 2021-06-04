@@ -1,6 +1,4 @@
 using Terminal.Gui;
-using System.Collections.Generic;
-using System.IO;
 
 public class OpenMovieReviewsWindow : ReviewsWindow
 {
@@ -9,10 +7,10 @@ public class OpenMovieReviewsWindow : ReviewsWindow
     {
         this.title = "View reviews";
         this.Title = this.title;
-        // this.menu.Visible = false;
 
        createNewReview.Text = "Add new review";
        typeGroup.Visible = false;
+       this.searchInput.Visible= false;
 
         Button backBtn = new Button()
         {
@@ -33,11 +31,6 @@ public class OpenMovieReviewsWindow : ReviewsWindow
         this.movie = movie;
         this.frameView.Title = $"\"{movie.title}\" reviews";
     }
-
-    // public void SetRepository(ReviewRepository reviewRepo)
-    // {
-    //     this.reviewRepository = reviewRepo;
-    // }
 
     protected override void OnNextPage()
     {
@@ -63,7 +56,6 @@ public class OpenMovieReviewsWindow : ReviewsWindow
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         nextPageBtn.Visible = (page != totalPages) && (!isEmptyList);
-        // this.createNewReview.Visible = this.currentUser.moderator;
     }
 
     protected override void TryDeleteReview(Review review)
@@ -97,7 +89,6 @@ public class OpenMovieReviewsWindow : ReviewsWindow
             review.userId = this.currentUser.id;
             int id = reviewRepository.Insert(review);
             review.id = id;
-            //allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
             ShowCurrentPage();
             ProcessOpenReview(review);
         }

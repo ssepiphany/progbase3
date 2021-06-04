@@ -93,25 +93,6 @@ public class MovieRepository
         return res == 1 ; 
     }
 
-    public List<Movie> GetByActorId(int id)   //SELECT * FROM movies CROSS JOIN movieActors, actors WHERE movies.id = movieActors.movieId AND actors.id = movieActors.actorId AND movieActors.actorId = 23
-    {
-        SqliteCommand command = connection.CreateCommand(); 
-        command.CommandText = @"SELECT * FROM actors, movies, movieActors
-            WHERE movieActors.movieId = movies.id 
-            AND movieActors.actorId = actors.Id
-            AND actors.id = $id"; 
-        command.Parameters.AddWithValue("$id" , id); 
-        SqliteDataReader reader = command.ExecuteReader() ; 
-        List<Movie> list = new List<Movie>() ; 
-        while(reader.Read())
-        {
-            Movie movie = ReadMovie(reader) ;  
-            list.Add(movie); 
-        }
-        reader.Close() ; 
-        return list ;  
-    }
-
     public int DeleteByActorId(int id)
     {
         SqliteCommand command = connection.CreateCommand() ; 
@@ -146,27 +127,35 @@ public class MovieRepository
         command.Parameters.AddWithValue("$title" , movie.title ); 
         command.Parameters.AddWithValue("$releaseDate" , movie.releaseDate.ToString("o")); 
         command.Parameters.AddWithValue("$genre" , movie.genre ); 
-        // command.Parameters.AddWithValue("$starringJackieChan" , movie.starringJackieChan.ToString()); 
         long newId = (long)command.ExecuteScalar() ;
         return (int)newId ; 
     }
 
     public int GetTotalPages(int pageLength)
     {
+        if(pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
         return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
     }
 
     public int GetTotalPagesForActor(int pageLength, int actorId)
     {
+        if(pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
         return (int)Math.Ceiling(this.GetCountForActor(actorId) / (float)pageLength) ; 
     }
 
     public List<Movie> GetPage(int pageNum, int pageLength)
     {
-        if(pageNum < 1)
+        if(pageNum < 1 || pageLength < 1)
         {
             throw new ArgumentOutOfRangeException();
         }
+
         int offset = pageLength * (pageNum - 1);
         List<Movie> page = new List<Movie>();
         SqliteCommand command = connection.CreateCommand() ; 
@@ -185,7 +174,7 @@ public class MovieRepository
 
     public List<Movie> GetPageForActor(int pageNum, int pageLength, int actorId)
     {
-        if(pageNum < 1)
+        if(pageNum < 1 || pageLength < 1)
         {
             throw new ArgumentOutOfRangeException();
         }
@@ -228,7 +217,6 @@ public class MovieRepository
         movie.title = reader.GetString(1) ;
         movie.releaseDate = DateTime.Parse(reader.GetString(2)) ;  
         movie.genre = reader.GetString(3);
-        // movie.starringJackieChan = bool.Parse(reader.GetString(4));
         return movie ;
     }
 
@@ -248,6 +236,52 @@ public class MovieRepository
         command.Parameters.AddWithValue("$actorId" , actorId); 
         long count = (long)command.ExecuteScalar();
         return count;
+    }
+
+    public int GetSearchPagesCount(string searchValue, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetTotalPages(pageLength);
+        }
+        if(pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM movies WHERE title LIKE '%' || $searchValue || '%' 
+            OR genre LIKE '%' || $searchValue || '%'"; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
+        long count = (long)command.ExecuteScalar();
+        return (int)Math.Ceiling(count / (float)pageLength) ; 
+    }
+
+    public List<Movie> GetSearchPage(string searchValue, int pageNum, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetPage(pageNum, pageLength);
+        }
+        if(pageNum < 1 || pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<Movie> page = new List<Movie>();
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM movies WHERE title LIKE '%' || $searchValue || '%' 
+             OR genre LIKE '%' || $searchValue || '%' LIMIT $pageLength OFFSET $offset"; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            Movie movie = ReadMovie(reader) ; 
+            page.Add(movie); 
+        }
+        reader.Close() ; 
+        return page ; 
     }
 
     public int ConnectMovieActor(int movieId, int actorId)

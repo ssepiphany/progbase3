@@ -20,7 +20,6 @@ public class UserRepository
         if ( reader.Read())
         {
             User user = ReadUser(reader); 
-            // user.reviews = reviewRepo.GetAllByAuthorId(user.id);
             reader.Close(); 
             return user;
         } 
@@ -66,6 +65,52 @@ public class UserRepository
         List<User> page = new List<User>();
         SqliteCommand command = connection.CreateCommand() ; 
         command.CommandText = @"SELECT * FROM users LIMIT $pageLength OFFSET $offset" ; 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            User user = ReadUser(reader) ; 
+            page.Add(user); 
+        }
+        reader.Close() ; 
+        return page ; 
+    }
+
+    public int GetSearchPagesCount(string searchValue, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetTotalPages(pageLength);
+        }
+        if(pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM users WHERE fullname LIKE '%' || $searchValue || '%' 
+            OR login LIKE '%' || $searchValue || '%'"; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
+        long count = (long)command.ExecuteScalar();
+        return (int)Math.Ceiling(count / (float)pageLength) ; 
+    }
+
+    public List<User> GetSearchPage(string searchValue, int pageNum, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetPage(pageNum, pageLength);
+        }
+        if(pageNum < 1 || pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<User> page = new List<User>();
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM users WHERE fullname LIKE '%' || $searchValue || '%' 
+             OR login LIKE '%' || $searchValue || '%' LIMIT $pageLength OFFSET $offset"; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
         command.Parameters.AddWithValue("$pageLength" , pageLength) ;
         command.Parameters.AddWithValue("$offset" , offset) ;
         SqliteDataReader reader = command.ExecuteReader() ; 

@@ -1,5 +1,4 @@
 using Terminal.Gui;
-using System;
 
 public class OpenReviewDialog : Dialog
 {

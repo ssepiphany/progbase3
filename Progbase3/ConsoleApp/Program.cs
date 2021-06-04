@@ -11,17 +11,9 @@ namespace ConsoleApp
         static void Main(string[] args)
         {
             SetDotSeparator();
-            // string dbPath = "C:/Users/Sofia/projects/progbase3/data/database.db";
+            
             string dbPath = "../../data/database.db";
-            SqliteConnection connection = new SqliteConnection($"Data Source={dbPath}");
-            connection.Open();
-            ConnectionState state = connection.State;
-
-            if(state == ConnectionState.Open)
-            {
-                ExecuteProgram(connection);
-            }
-            else
+            if (!System.IO.File.Exists(dbPath))
             {
                 Application.Init();
                 Toplevel top = Application.Top;
@@ -36,8 +28,19 @@ namespace ConsoleApp
                 top.Add(window);
                 Application.Run();
             }
+            else
+            {
+                SqliteConnection connection = new SqliteConnection($"Data Source={dbPath}");
+                connection.Open();
+                ConnectionState state = connection.State;
 
-             connection.Close();
+                if(state == ConnectionState.Open)
+                {
+                    ExecuteProgram(connection);
+                }
+
+                connection.Close();
+            }
         }
 
         static void OnExit()

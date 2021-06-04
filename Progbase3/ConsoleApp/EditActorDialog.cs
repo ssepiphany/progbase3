@@ -4,6 +4,7 @@ public class EditActorDialog : CreateActorDialog
 {
     
     private TextField idInput;
+    protected Actor actor; 
     public EditActorDialog()
     {
         this.dialogTitle = "Edit actor";
@@ -19,10 +20,32 @@ public class EditActorDialog : CreateActorDialog
 
     public void SetActor(Actor actor)
     {
+        this.actor = actor;
         this.idInput.Text = actor.id.ToString();
         this.fullnameInput.Text = actor.fullname;
         this.genderGroup.SelectedItem = GetIndexOfSelectedItem(actor.gender);
         this.ageInput.Text = actor.age.ToString();
+    }
+
+    protected override bool ValidateInput()
+    {
+        if(this.fullnameInput.Text.IsEmpty || this.ageInput.Text.IsEmpty)
+        {
+            this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
+            return false;
+        }
+        if(actorRepository.GetByFullname(fullnameInput.Text.ToString()) != null && this.fullnameInput.Text.ToString() != this.actor.fullname)
+        {
+            this.Title = MessageBox.ErrorQuery("Error", $"Actor with fullname \"{this.fullnameInput.Text}\"\r\nalready exists", "OK").ToString();
+            return false;
+        }
+        int age;
+        if(!int.TryParse(this.ageInput.Text.ToString(), out age))
+        {
+            this.Title = MessageBox.ErrorQuery("Error", "Invalid age value", "OK").ToString();
+            return false;
+        }
+        return true;
     }
 
     private int GetIndexOfSelectedItem(string item)

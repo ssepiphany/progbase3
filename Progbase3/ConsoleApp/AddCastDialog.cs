@@ -3,7 +3,6 @@ using Terminal.Gui;
 public class AddCastDialog : CreateActorDialog
 {
     public int selectedItem;
-    protected ActorRepository actorRepository;
     public AddCastDialog()
     {
         this.dialogTitle = "Add cast member";
@@ -17,11 +16,6 @@ public class AddCastDialog : CreateActorDialog
         choiceGroup.SelectedItemChanged += OnSelectedItemChanged;
 
         this.Add(choiceGroup);
-    }
-
-    public void SetRepository(ActorRepository actorRepository)
-    {
-        this.actorRepository = actorRepository;
     }
 
     public string GetActorsFullname()
@@ -66,6 +60,11 @@ public class AddCastDialog : CreateActorDialog
             if(!int.TryParse(this.ageInput.Text.ToString(), out age) )
             {
                 this.Title = MessageBox.ErrorQuery("Error", "Invalid age value", "OK").ToString();
+                return false;
+            }
+            if(actorRepository.GetByFullname(fullnameInput.Text.ToString()) != null)
+            {
+                this.Title = MessageBox.ErrorQuery("Error", $"Actor with fullname \"{this.fullnameInput.Text}\"\r\nalready exists", "OK").ToString();
                 return false;
             }
             return true;

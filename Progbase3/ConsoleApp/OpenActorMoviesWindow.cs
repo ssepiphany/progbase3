@@ -7,10 +7,10 @@ public class OpenActorMoviesWindow : MoviesWindow
     {
         this.title = "View movies";
         this.Title = this.title;
-        // this.menu.Visible = false;
 
        createNewMovie.Text = "Add new movie";
        typeGroup.Visible = false;
+       this.searchInput.Visible = false;
 
         Button backBtn = new Button()
         {
@@ -68,21 +68,6 @@ public class OpenActorMoviesWindow : MoviesWindow
             page--;
         }
         this.ShowCurrentPage();
-
-        // bool result = repo.RemoveConnectionsWithMovie(movie.id);
-        // if(result)
-        // {
-        //     int pages = repo.GetTotalPagesForActor(pageLength, this.actor.id);
-        //     if(page > pages && page > 1)
-        //     {
-        //         page--;
-        //     }
-        //     this.ShowCurrentPage();
-        // }
-        // else
-        // {
-        //     MessageBox.ErrorQuery("Delete actor", "Can not delete movie from list", "OK");
-        // }
     }
 
     protected override void OnCreateButtonClicked()

@@ -129,6 +129,7 @@ public class OpenMovieDialog : Dialog
     private void OnMovieEdit()
     {
         EditMovieDialog dialog = new EditMovieDialog();
+        dialog.SetRepository(movieRepo);
         dialog.SetMovie(this.movie);
         Application.Run(dialog);
 

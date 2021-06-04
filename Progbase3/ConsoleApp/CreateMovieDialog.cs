@@ -9,9 +9,10 @@ public class CreateMovieDialog : Dialog
     protected RadioGroup genreGroup;
     protected NStack.ustring[] options;
     protected Label releaseDateLbl;
-    // protected CheckBox starringCheck;
+
     protected DateField dateInput;
     protected Label genreLbl;
+    protected MovieRepository movieRepo;
     public CreateMovieDialog()
     {
         this.dialogTitle = "Create movie";
@@ -47,14 +48,11 @@ public class CreateMovieDialog : Dialog
         };
         this.Add(releaseDateLbl, dateInput);
 
+    }
 
-        // Label starringLbl = new Label(2, 5 + options.Length , "Starring Jackie Chan:");
-        // starringCheck = new CheckBox("Starring Jackie Chan")
-        // {
-        //     X = rightColumn, Y = Pos.Top(dateInput) + 3, Width = 40, Checked = false,
-        // };
-        // this.Add(starringCheck);
-
+    public void SetRepository(MovieRepository movieRepo)
+    {
+        this.movieRepo = movieRepo;
     }
 
     public Movie GetMovie()
@@ -62,7 +60,6 @@ public class CreateMovieDialog : Dialog
         Movie movie = new Movie();
         movie.title = this.movieTitleInput.Text.ToString();
         movie.genre = options[genreGroup.SelectedItem].ToString();
-        // movie.starringJackieChan = this.starringCheck.Checked;
         movie.releaseDate = this.dateInput.Date;
         return movie;
     }
@@ -89,6 +86,11 @@ public class CreateMovieDialog : Dialog
         if(this.movieTitleInput.Text.IsEmpty)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
+            return false;
+        }
+        if(movieRepo.GetByTitle(this.movieTitleInput.Text.ToString()) != null)
+        {
+            this.Title = MessageBox.ErrorQuery("Error", $"Movie with title \"{this.movieTitleInput.Text}\"\r\nalready exists", "OK").ToString();
             return false;
         }
         return true;

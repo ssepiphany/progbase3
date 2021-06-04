@@ -9,8 +9,6 @@ public class Movie
     [XmlElement("release_date")]
     public DateTime releaseDate;
     public string genre;
-    // [XmlElement("starring_Jackie_Chan")]
-    // public bool starringJackieChan;
     [XmlIgnore]
     public List<Review> reviews;
     [XmlIgnore]

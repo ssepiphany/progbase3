@@ -4,7 +4,6 @@ using System.IO;
 
 public class ActorsWindow : Window
 {
-    
     protected string title = "Actor DB";
     protected ListView allActorsListView;
     protected Label emptyListLbl;
@@ -25,6 +24,8 @@ public class ActorsWindow : Window
     protected Label currentUsername;
     protected Button createNewActor;
     protected FrameView frameView;
+    protected string searchValue = "";
+    protected TextField searchInput;
     public ActorsWindow()
     {
         this.Title = this.title;
@@ -75,7 +76,7 @@ public class ActorsWindow : Window
         frameView.Add(emptyListLbl);
         this.Add(frameView);
 
-        createNewActor = new Button(2, 4, "Create new actor");
+        createNewActor = new Button(2, 2, "Create new actor");
         createNewActor.Clicked += OnCreateButtonClicked;
         this.Add(createNewActor);
 
@@ -90,12 +91,25 @@ public class ActorsWindow : Window
         };
 
         this.Add(currentUserLbl, currentUsername);
+
+        searchInput = new TextField(2, 4, 20, "");
+        searchInput.KeyPress += OnSearchEnter;
+        this.Add(searchInput);
     }
 
     protected void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
     {
         this.selectedItem = args.SelectedItem;
         Application.RequestStop();
+    }
+
+    protected void OnSearchEnter(KeyEventEventArgs args)
+    {
+        if (args.KeyEvent.Key == Key.Enter)
+        {
+            this.searchValue = this.searchInput.Text.ToString();
+            this.ShowCurrentPage();
+        }
     }
 
     public string GetWindowTitle()
@@ -141,14 +155,21 @@ public class ActorsWindow : Window
 
     protected virtual void ShowCurrentPage()
     {
-        bool isEmptyList = (this.actorRepository.GetCount() == 0);
-        int totalPages = actorRepository.GetTotalPages(pageLength);
+        int totalPages = actorRepository.GetSearchPagesCount(searchValue, pageLength);
+        if(page > totalPages && page > 1)
+        {
+            page = totalPages;
+        }
+        bool isEmptyList = (totalPages == 0);
+        this.searchInput.Visible = !(this.actorRepository.GetTotalPages(pageLength) == 0);
+        
         this.pageLbl.Visible = !isEmptyList;
         this.pageLbl.Text = page.ToString();
         this.totalPagesLbl.Text = totalPages.ToString();
         this.totalPagesLbl.Visible = !isEmptyList;
         this.allActorsListView.Visible = !isEmptyList;
-        this.allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
+        this.allActorsListView.SetSource(actorRepository.GetSearchPage(searchValue, page, pageLength));
+    
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         newxtPageBtn.Visible = (page != totalPages) && (!isEmptyList);
@@ -158,6 +179,7 @@ public class ActorsWindow : Window
     protected virtual void OnCreateButtonClicked()
     {
         CreateActorDialog dialog = new CreateActorDialog();
+        dialog.SetRepository(actorRepository);
         Application.Run(dialog);
 
         if(!dialog.canceled)
@@ -165,7 +187,7 @@ public class ActorsWindow : Window
             Actor actor = dialog.GetActor();
             int id = actorRepository.Insert(actor);
             actor.id = id;
-            // allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
+            
             ShowCurrentPage();
             ProcessOpenActor(actor);
         }
@@ -197,7 +219,6 @@ public class ActorsWindow : Window
             if(result)
             {
                 this.ShowCurrentPage();
-                //allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
             }
             else
             {
@@ -217,7 +238,6 @@ public class ActorsWindow : Window
             {
                 page--;
             }
-            //allActorsListView.SetSource(actorRepository.GetPage(page, pageLength));
             this.ShowCurrentPage();
         }
         else

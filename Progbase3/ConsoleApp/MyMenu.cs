@@ -25,7 +25,6 @@ public class MyMenu : MenuBar
                new MenuItem ("_Export", "", OnExport),
                new MenuItem ("_Import", "", OnImport),
                new MenuItem ("_Generate report", "", OnGenerateReport),
-               new MenuItem ("_Generate histogram", "", OnGenerateHistogram),
                new MenuItem ("_Exit", "", OnQuit),
            }),
            new MenuBarItem ("_Help", new MenuItem [] 
@@ -114,12 +113,7 @@ public class MyMenu : MenuBar
                 {
                     int id = reviewRepository.Insert(root.reviews[i]);
                     root.reviews[i].id = id;
-                    // reviewRepository.Update(root.reviews[i].id, root.reviews[i]);
                 }
-                // else
-                // {
-                //     // reviewRepository.Update(root.reviews[i].id, root.reviews[i]);
-                // }
             }
         }
     }
@@ -147,8 +141,8 @@ public class MyMenu : MenuBar
             highestScoreReview = reviewRepository.GetUserHighestScoreReview(reviews);
             lowestScoreReview = reviewRepository.GetUserLowestScoreReview(reviews);
 
-            // string histogramPath = this.OnGenerateHistogram();
-            // File.Copy(histogramPath, imagePath, true);
+            string histogramPath = this.OnGenerateHistogram();
+            File.Copy(histogramPath, imagePath, true);
         }
         else
         {
@@ -178,7 +172,7 @@ public class MyMenu : MenuBar
 
         bool exported = false;
         int c = 2;
-        string zipPath2 = dirPath + "/template(1).docx";
+        string zipPath2 = dirPath + "/report(1).docx";
 
        while(!exported)
        {
@@ -189,7 +183,7 @@ public class MyMenu : MenuBar
             }
             catch
             {
-                zipPath2 = dirPath + $"/template({c}).docx";
+                zipPath2 = dirPath + $"/report({c}).docx";
                 c++;
             }
        }
@@ -221,7 +215,7 @@ public class MyMenu : MenuBar
         Label titleLbl = new Label("Movie database");
         dialog.Add(titleLbl);
 
-        string info = File.ReadAllText("./about");
+        string info = File.ReadAllText("../../data/about");
         TextView text = new TextView()
         {
             X = Pos.Center(), Y = Pos.Center(), Width = Dim.Percent(50), 
@@ -239,74 +233,39 @@ public class MyMenu : MenuBar
         Application.Run(dialog);
     }
 
-    protected void OnGenerateHistogram()
+    protected string OnGenerateHistogram()
     {
-        // var plt = new ScottPlot.Plot(600, 400);
-
-        // Random rand = new Random(0);
-        // double[] values = DataGen.RandomNormal(rand, pointCount: 1000, mean: 50, stdDev: 20);
-        // var hist = new ScottPlot.Statistics.Histogram(values, min: 0, max: 100);
-
-        // double barWidth = hist.binSize * 1.2; // slightly over-side to reduce anti-alias rendering artifacts
-
-        // plt.PlotBar(hist.bins, hist.countsFrac, barWidth: barWidth, outlineWidth: 0);
-        // plt.PlotScatter(hist.bins, hist.countsFracCurve, markerSize: 0, lineWidth: 2, color: System.Drawing.Color.Black);
-        // double[] curveXs = DataGen.Range(pop.minus3stDev, pop.plus3stDev, .1);
-        // double[] curveYs = pop.GetDistribution(curveXs);
-        // plt.PlotScatter(curveXs, curveYs, markerSize: 0, lineWidth: 2);
-        // plt.Legend();
-        // plt.Title("Normal Random Data");
-        // plt.YLabel("Frequency (fraction)");
-        // plt.XLabel("Value (units)");
-        // // plt.Axis(null, null, 0, null);
-        // plt.SetAxisLimits(null, null, 0, null);
-        // plt.Grid(lineStyle: LineStyle.Dot);
-
-        // plt.SaveFig("Advanced_Statistics_Histogram.png");
-
         var plt = new ScottPlot.Plot(600, 400);
 
-        Dictionary<int, int> scoresFrequency =  reviewRepository.GetReviewsForHistogram(this.currentUser);
-        List<Review> reviews = reviewRepository.GetAllByAuthorId(this.currentUser.id);
-        double[] values = new double[reviews.Count];
-        Dictionary<int, int>.KeyCollection keys = scoresFrequency.Keys;  
-        int c = 0;
-        // for (int i = 0; i < reviews.Count ; i++)
-        // {
-        //     values[i] = reviews[i].value;
-        // }
-        foreach (int key in keys)
+        Dictionary<int, int> reviewFrequency = reviewRepository.GetReviewsForHistogram(this.currentUser);
+        Dictionary<int, int>.KeyCollection keys = reviewFrequency.Keys;
+
+        double[] values = new double[keys.Count];
+        double[] counts = new double[keys.Count];
+
+        int c = 0; 
+        foreach ( int key in keys)
         {
             values[c] = key;
+            counts[c] = reviewFrequency[key];
             c++;
         }
+
+
         var hist = new ScottPlot.Statistics.Histogram(values, min: 0, max: 11);
+       
+        double barWidth = hist.binSize * 5;
 
-        // // c = 0;
-
-
-        foreach (int key in keys)
-        {
-            hist.countsFrac.SetValue( scoresFrequency[key],key);
-        }
-
-        
-        double barWidth = hist.binSize;
-
-        plt.PlotBar(hist.bins, hist.countsFrac, barWidth: barWidth, outlineWidth: 0);
-        // plt.AddBar(hist.bins, hist.counts);
-        plt.PlotScatter(hist.bins, hist.countsFracCurve, markerSize: 2, lineWidth: 2, color: System.Drawing.Color.Black);
-        // plt.AddScatter(hist.bins, hist.countsFracCurve, markerSize: 0, lineWidth: 2, color: System.Drawing.Color.Black);
+        plt.PlotBar(values, counts, barWidth: barWidth, outlineWidth: 0);
+        plt.AddScatter(hist.bins, hist.countsFracCurve, markerSize: 0, lineWidth: 2, color: System.Drawing.Color.Black);
         plt.Title("Frequency of reviews' scores");
-        plt.YLabel("Frequency (fraction)");
-        plt.XLabel("Value (units)");
-        // plt.Axis(null, null, 0, null);
+        plt.YLabel("Frequency");
+        plt.XLabel("Score");
         plt.SetAxisLimits(null, null, 0, null);
         plt.Grid(lineStyle: LineStyle.Dot);
         string imagePath = "./histogram.png";
 
         plt.SaveFig(imagePath);
-        // // return imagePath;
+        return imagePath;
     }
-
 }

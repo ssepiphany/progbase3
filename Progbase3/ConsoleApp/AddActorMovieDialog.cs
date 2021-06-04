@@ -3,7 +3,6 @@ using Terminal.Gui;
 public class AddActorMovieDialog : CreateMovieDialog
 {
     public int selectedItem;
-    protected MovieRepository movieRepository;
     public AddActorMovieDialog()
     {
         this.dialogTitle = "Add movie";
@@ -17,11 +16,6 @@ public class AddActorMovieDialog : CreateMovieDialog
         choiceGroup.SelectedItemChanged += OnSelectedItemChanged;
 
         this.Add(choiceGroup);
-    }
-
-    public void SetRepository(MovieRepository movieRepository)
-    {
-        this.movieRepository = movieRepository;
     }
 
     public string GetMovieTitle()
@@ -55,11 +49,20 @@ public class AddActorMovieDialog : CreateMovieDialog
             this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
             return false;
         }
+        Movie chosenMovie = movieRepo.GetByTitle(movieTitleInput.Text.ToString());
         if(this.selectedItem == 1)
         {
-            if(movieRepository.GetByTitle(movieTitleInput.Text.ToString()) == null)
+            if(chosenMovie == null)
             {
                 this.Title = MessageBox.ErrorQuery("Error", $"Movie \"{this.movieTitleInput .Text}\" does not exist", "OK").ToString();
+                return false;
+            }
+        }
+        if (this.selectedItem == 0)
+        {
+            if(chosenMovie != null)
+            {
+                this.Title = MessageBox.ErrorQuery("Error", $"Movie with title \"{this.movieTitleInput .Text}\"\r\nalready exists", "OK").ToString();
                 return false;
             }
         }

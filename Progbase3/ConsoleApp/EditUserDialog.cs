@@ -5,6 +5,7 @@ public class EditUserDialog : CreateUserDialog
     
     private TextField idInput;
     private TextField dateText;
+    protected User currentUser;
     public EditUserDialog(User user)
     {
         this.dialogTitle = "Edit user";
@@ -28,10 +29,27 @@ public class EditUserDialog : CreateUserDialog
 
     public void SetUser(User user)
     {
+        this.currentUser = user;
         this.idInput.Text = user.id.ToString();
         this.fullnameInput.Text = user.fullname;
         this.loginInput.Text = user.login;
         this.dateText.Text = user.createdAt.ToString("F");
+        this.moderatorCheck.Visible = user.moderator; 
         this.moderatorCheck.Checked = user.moderator;
+    }
+
+    protected override bool ValidateInput()
+    {
+        if(this.fullnameInput.Text.IsEmpty || this.loginInput.Text.IsEmpty || this.passwordInput.Text.IsEmpty)
+        {
+            this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
+            return false;
+        }
+        if(this.repo.GetByLogin(this.loginInput.Text.ToString()) != null && this.loginInput.Text.ToString() != this.currentUser.login)
+        {
+            this.Title = MessageBox.ErrorQuery("Error", $"Username \"{this.loginInput.Text.ToString()}\" already exists", "OK").ToString();
+            return false;
+        }
+        return true;
     }
 }

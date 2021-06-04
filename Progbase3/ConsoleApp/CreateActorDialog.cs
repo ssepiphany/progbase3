@@ -10,6 +10,7 @@ public class CreateActorDialog : Dialog
     protected TextField ageInput;
     protected Label actorGengerLbl;
     protected Label ageLbl;
+    protected ActorRepository actorRepository;
     public CreateActorDialog()
     {
         this.dialogTitle = "Create actor";
@@ -57,6 +58,11 @@ public class CreateActorDialog : Dialog
         return actor;
     }
 
+    public void SetRepository(ActorRepository actorRepository)
+    {
+        this.actorRepository = actorRepository;
+    }
+
     protected void OnCreateDialogCanceled()
     {
         this.canceled = true;
@@ -79,6 +85,11 @@ public class CreateActorDialog : Dialog
         if(this.fullnameInput.Text.IsEmpty || this.ageInput.Text.IsEmpty)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
+            return false;
+        }
+        if(actorRepository.GetByFullname(fullnameInput.Text.ToString()) != null)
+        {
+            this.Title = MessageBox.ErrorQuery("Error", $"Actor with fullname \"{this.fullnameInput.Text}\"\r\nalready exists", "OK").ToString();
             return false;
         }
         int age;

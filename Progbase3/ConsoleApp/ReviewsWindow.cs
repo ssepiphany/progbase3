@@ -23,6 +23,8 @@ public class ReviewsWindow : Window
     protected User currentUser;
     protected Button createNewReview;
     protected FrameView frameView;
+    protected string searchValue = "";
+    protected TextField searchInput;
     public ReviewsWindow()
     {
         this.Title = this.title;
@@ -74,7 +76,7 @@ public class ReviewsWindow : Window
         this.Add(frameView);
 
 
-        createNewReview = new Button(2, 4, "Add new review");
+        createNewReview = new Button(2, 2, "Add new review");
         createNewReview.Clicked += OnCreateButtonClicked;
         this.Add(createNewReview);
 
@@ -89,12 +91,25 @@ public class ReviewsWindow : Window
         };
 
         this.Add(currentUserLbl, currentUsername);
+
+        searchInput = new TextField(2, 4, 20, "");
+        searchInput.KeyPress += OnSearchEnter;
+        this.Add(searchInput);
     }
 
     protected void OnSelectedItemChanged(RadioGroup.SelectedItemChangedArgs args)
     {
         this.selectedItem = args.SelectedItem;
         Application.RequestStop();
+    }
+
+    protected void OnSearchEnter(KeyEventEventArgs args)
+    {
+        if (args.KeyEvent.Key == Key.Enter)
+        {
+            this.searchValue = this.searchInput.Text.ToString();
+            this.ShowCurrentPage();
+        }
     }
 
     public string GetWindowTitle()
@@ -140,15 +155,21 @@ public class ReviewsWindow : Window
 
     protected virtual void ShowCurrentPage()
     {
-        this.currentUser.reviews = reviewRepository.GetAllByAuthorId(this.currentUser.id);
-        bool isEmptyList = ( this.currentUser.reviews.Count == 0);
-        int totalPages = reviewRepository.GetTotalPagesForAuthor(pageLength, this.currentUser.id);
+        int totalPages = reviewRepository.GetSearchPagesCount(searchValue, this.currentUser.id, pageLength);
+        if(page > totalPages && page > 1)
+        {
+            page = totalPages;
+        }
+        bool isEmptyList = (totalPages == 0);
+        this.searchInput.Visible = !(this.reviewRepository.GetTotalPagesForAuthor(pageLength, this.currentUser.id) == 0);
+        
         this.pageLbl.Visible = !isEmptyList;
         this.pageLbl.Text = page.ToString();
         this.totalPagesLbl.Text = totalPages.ToString();
         this.totalPagesLbl.Visible = !isEmptyList;
         this.allReviewsListView.Visible = !isEmptyList;
-        this.allReviewsListView.SetSource(reviewRepository.GetAuthorPage(page, pageLength, this.currentUser.id));
+        this.allReviewsListView.SetSource(reviewRepository.GetSearchPage(this.currentUser.id, searchValue, page, pageLength));
+        
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         nextPageBtn.Visible = (page != totalPages) && (!isEmptyList);
@@ -166,7 +187,7 @@ public class ReviewsWindow : Window
             review.userId = this.currentUser.id;
             int id = reviewRepository.Insert(review);
             review.id = id;
-            //allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
+            
             ShowCurrentPage();
             ProcessOpenReview(review);
         }
@@ -198,7 +219,6 @@ public class ReviewsWindow : Window
             bool result = reviewRepository.Update(review.id, dialog.review);
             if(result)
             {
-                //allReviewsListView.SetSource(reviewRepository.GetPage(page, pageLength));
                 this.ShowCurrentPage();
             }
             else

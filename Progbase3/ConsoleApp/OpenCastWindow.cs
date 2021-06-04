@@ -2,15 +2,16 @@ using Terminal.Gui;
 
 public class OpenCastWindow : ActorsWindow
 {
-    private Movie movie; 
+    protected Movie movie; 
     public OpenCastWindow()
     {
         this.title = "View cast";
         this.Title = this.title;
-        // this.menu.Visible = false;
 
        createNewActor.Text = "Add new cast member";
        typeGroup.Visible = false;
+
+       this.searchInput.Visible = false;
 
         Button backBtn = new Button()
         {
@@ -74,21 +75,6 @@ public class OpenCastWindow : ActorsWindow
             page--;
         }
         this.ShowCurrentPage();
-
-        // bool result = actorRepository.RemoveConnectionsWithActor(actor.id);
-        // if(result)
-        // {
-        //     int pages = actorRepository.GetTotalPagesForMovie(pageLength, this.movie.id);
-        //     if(page > pages && page > 1)
-        //     {
-        //         page--;
-        //     }
-        //     this.ShowCurrentPage();
-        // }
-        // else
-        // {
-        //     MessageBox.ErrorQuery("Delete actor", "Can not delete actor from list", "OK");
-        // }
     }
 
     protected override void OnCreateButtonClicked()

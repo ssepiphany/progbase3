@@ -30,29 +30,6 @@ public class ReviewRepository
         } 
     }
 
-    // public List<Review> GetPage(int pageNum, int pageLength)
-    // {
-    //     if(pageNum < 1)
-    //     {
-    //         throw new ArgumentOutOfRangeException();
-    //     }
-    //     int offset = pageLength * (pageNum - 1);
-    //     List<Review> page = new List<Review>();
-    //     SqliteCommand command = connection.CreateCommand() ;
-    //     command.CommandText = @"SELECT * FROM reviews CROSS JOIN movies 
-    //         WHERE movies.id = reviews.movieId LIMIT $pageLength OFFSET $offset" ; 
-    //     command.Parameters.AddWithValue("$pageLength" , pageLength) ;
-    //     command.Parameters.AddWithValue("$offset" , offset) ;
-    //     SqliteDataReader reader = command.ExecuteReader() ; 
-    //     while(reader.Read())
-    //     {
-    //         Review review = FillReviewWithMovies(reader); 
-    //         page.Add(review); 
-    //     }
-    //     reader.Close() ; 
-    //     return page ; 
-    // }
-
     public List<Review> GetAuthorPage(int pageNum, int pageLength, int id)
     {
         if(pageNum < 1)
@@ -77,6 +54,58 @@ public class ReviewRepository
         reader.Close() ; 
         return page ; 
     }
+    
+    public int GetSearchPagesCount(string searchValue, int userId, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetTotalPagesForAuthor(pageLength, userId);
+        }
+        if(pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM reviews CROSS JOIN movies WHERE (reviews.movieId = movies.id AND userId = $userId)
+            AND (title LIKE '%' || $searchValue || '%' 
+            OR value LIKE '%' || $searchValue || '%')"; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
+        command.Parameters.AddWithValue("$userId" , userId); 
+        long count = (long)command.ExecuteScalar();
+        return (int)Math.Ceiling(count / (float)pageLength) ; 
+    }
+
+    public List<Review> GetSearchPage(int userId, string searchValue, int pageNum, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetAuthorPage(pageNum, pageLength, userId);
+        }
+        if(pageNum < 1 || pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<Review> page = new List<Review>();
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM reviews CROSS JOIN movies WHERE (reviews.movieId = movies.id AND userId = $userId)
+            AND (title LIKE '%' || $searchValue || '%' 
+            OR value LIKE '%' || $searchValue || '%') LIMIT $pageLength OFFSET $offset"; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
+        command.Parameters.AddWithValue("$userId" , userId); 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            Review review = FillReviewWithMovies(reader); 
+            review.outputFormat = 1;
+            page.Add(review); 
+        }
+        reader.Close() ; 
+        return page ; 
+    }
+
 
     public long GetCountForMovie(int movieId)
     {
@@ -124,11 +153,6 @@ public class ReviewRepository
         user.moderator = bool.Parse(reader.GetString(15));
         return user;
     }
-
-    // public int GetTotalPages(int pageLength)
-    // {
-    //     return (int)Math.Ceiling(this.GetCount() / (float)pageLength) ; 
-    // }
 
     public int GetTotalPagesForAuthor(int pageLength, int id)
     {
@@ -282,7 +306,6 @@ public class ReviewRepository
         SqliteCommand command = connection.CreateCommand(); 
         command.CommandText = @"SELECT * FROM reviews CROSS JOIN movies
             WHERE userId = $id AND movies.id = reviews.movieId";
-        // command.CommandText = @"SELECT * FROM reviews WHERE userId = $id"; 
         command.Parameters.AddWithValue("$id" , user.id); 
         SqliteDataReader reader = command.ExecuteReader() ; 
         List<Review> list = new List<Review>() ; 
@@ -303,7 +326,6 @@ public class ReviewRepository
         movie.title = reader.GetString(7);
         movie.releaseDate = DateTime.Parse(reader.GetString(8));
         movie.genre = reader.GetString(9);
-        // movie.starringJackieChan = bool.Parse(reader.GetString(9));
         Review review = ReadReview(reader);  
         review.movie = movie;
         return review;

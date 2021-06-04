@@ -10,7 +10,7 @@ namespace GeneratorApp
         static void Main(string[] args)
         {
             SetDotSeparator();
-            string dbPath = "C:/Users/Sofia/projects/progbase3/data/database.db";
+            string dbPath = "../../data/database.db";
             SqliteConnection connection = new SqliteConnection($"Data Source={dbPath}");
             connection.Open();
 
@@ -33,7 +33,7 @@ namespace GeneratorApp
                 {
                     case "movie": 
                         List<Movie> list1 = Generator.GenerateMovies(num, movieRepo);
-                        for(int i = 0; i < num; i++)
+                        for(int i = 0; i < list1.Count; i++)
                         {
                             movieRepo.Insert(list1[i]);
                         }
@@ -48,7 +48,7 @@ namespace GeneratorApp
                         break;
                     case "actor":
                         List<Actor> list2 = Generator.GenerateActors(num, actorRepo);
-                        for(int i = 0; i < num; i++)
+                        for(int i = 0; i < list2.Count; i++)
                         {
                             actorRepo.Insert(list2[i]);
                         }
@@ -63,14 +63,14 @@ namespace GeneratorApp
                         break;
                     case "review":
                         List<Review> list3 = Generator.GenerateReviews(num, userRepo, movieRepo, logins);
-                        for(int i = 0; i < num; i++)
+                        for(int i = 0; i < list3.Count; i++)
                         {
                             reviewRepo.Insert(list3[i]);
                         }
                         break;
                     case "user":
                         List<User> list4 = Generator.GenerateUsers(num, logins);
-                        for(int i = 0; i < num; i++)
+                        for(int i = 0; i < list4.Count; i++)
                         {
                             userRepo.Insert(list4[i]);
                         }

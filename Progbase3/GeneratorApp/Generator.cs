@@ -38,7 +38,7 @@ static class Generator
             }
             actor.fullname = values[1] ;  
             actor.age = random.Next(15, 81);
-            actor.gender = genders[random.Next(1,3)];
+            actor.gender = genders[random.Next(0,2)];
             actors.Add(actor) ; 
         }
         sr.Close() ; 
@@ -77,7 +77,6 @@ static class Generator
             }
             movie.title = values[1];  
             movie.genre = genres[random.Next(0,genres.Length)];
-            // movie.starringJackieChan = random.Next(1, 100) > 60;
             if(!DateTime.TryParse(values[4], out movie.releaseDate))
             {
                 i--;
@@ -91,7 +90,6 @@ static class Generator
 
     public static List<Review> GenerateReviews(int num, UserRepository userRepo, MovieRepository movieRepo, HashSet<string> logins)
     {
-        // string filePath = "C:/Users/Sofia/projects/progbase3/data/generator/IMDB Dataset.csv";
         List<Review> reviews = new List<Review>();
         Dictionary<int, List<int>> connection = new Dictionary<int, List<int>>();
         if(userRepo.GetCount() == 0) GenerateUsers(num/2, logins);
@@ -129,7 +127,7 @@ static class Generator
             }
             string[] values = row.Split(',') ;
             User user = new User();
-            while(logins.Contains(values[2]))
+            if (logins.Contains(values[2]))
             {
                 i--;
                 continue;

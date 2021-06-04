@@ -13,6 +13,7 @@ public class CreateUserDialog : Dialog
     protected TimeField timeInput;
     protected TextField passwordInput;
     protected CheckBox moderatorCheck;
+    protected UserRepository repo;
     public CreateUserDialog()
     {
         this.dialogTitle = "Create user";
@@ -79,6 +80,11 @@ public class CreateUserDialog : Dialog
         return user;
     }
 
+    public void SetRepository(UserRepository repo)
+    {
+        this.repo = repo;
+    }
+
     private void OnCreateDialogCanceled()
     {
         this.canceled = true;
@@ -96,11 +102,16 @@ public class CreateUserDialog : Dialog
         Application.RequestStop();
     }
 
-    public bool ValidateInput()
+    protected virtual bool ValidateInput()
     {
         if(this.fullnameInput.Text.IsEmpty || this.loginInput.Text.IsEmpty || this.passwordInput.Text.IsEmpty)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to fill all fields", "OK").ToString();
+            return false;
+        }
+        if(this.repo.GetByLogin(this.loginInput.Text.ToString()) != null)
+        {
+            this.Title = MessageBox.ErrorQuery("Error", $"Username \"{this.loginInput.Text.ToString()}\" already exists", "OK").ToString();
             return false;
         }
         return true;

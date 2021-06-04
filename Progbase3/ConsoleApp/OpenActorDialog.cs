@@ -112,6 +112,7 @@ public class OpenActorDialog : Dialog
     private void OnActorEdit()
     {
         EditActorDialog dialog = new EditActorDialog();
+        dialog.SetRepository(actorRepository);
         dialog.SetActor(this.actor);
         Application.Run(dialog);
 

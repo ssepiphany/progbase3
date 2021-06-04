@@ -14,6 +14,7 @@ public class OpenUserDialog : Dialog
     private User currentUser;
     private Button editBtn;
     private Button deleteBtn;
+    protected UserRepository repository;
     public OpenUserDialog()
     {
         this.dialogTitle = "Open user";
@@ -76,6 +77,11 @@ public class OpenUserDialog : Dialog
         this.deleteBtn.Visible = this.currentUser.moderator || (this.user.id == this.currentUser.id);
     }
 
+    public void SetRepository(UserRepository repo)
+    {
+        this.repository = repo;
+    }
+
     private void OnUserDelete()
     {
         int index = MessageBox.Query("Delete user", "Are you sure", "No", "Yes");
@@ -89,6 +95,7 @@ public class OpenUserDialog : Dialog
     private void OnUserEdit()
     {
         EditUserDialog dialog = new EditUserDialog(this.user);
+        dialog.SetRepository(repository);
         dialog.SetUser(this.user);
         Application.Run(dialog);
 

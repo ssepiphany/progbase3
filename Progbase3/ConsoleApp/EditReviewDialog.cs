@@ -32,6 +32,5 @@ public class EditReviewDialog : CreateReviewDialog
         this.scoreInput.Text = review.value.ToString();
         this.movieTitleInput.Text = movieRepo.GetById(review.movieId).title;
         this.dateText.Text = review.createdAt.ToString("F");
-        // this.userIdInput.Text = review.userId.ToString();
     }
 }

@@ -12,7 +12,7 @@ public class CreateReviewDialog : Dialog
     protected TextField movieTitleInput;
     public MovieRepository movieRepo;
     public UserRepository userRepo;
-    // protected TextField userIdInput;
+
     protected Label createdAtLbl;
     public CreateReviewDialog()
     {
@@ -41,14 +41,7 @@ public class CreateReviewDialog : Dialog
         {
             X = rightColumn, Y = Pos.Top(movieTitleLbl), Width = 40
         };
-        this.Add(movieTitleLbl, movieTitleInput); 
-
-        // Label userIdLbl = new Label(2, 8, "User id:");
-        // userIdInput = new TextField()
-        // {
-        //     X = rightColumn, Y = Pos.Top(userIdLbl), Width = 40
-        // };
-        // this.Add(userIdLbl, userIdInput);        
+        this.Add(movieTitleLbl, movieTitleInput);  
 
         createdAtLbl = new Label(2, 8, "Created at:");
         dateInput = new DateField()
@@ -117,28 +110,11 @@ public class CreateReviewDialog : Dialog
             this.Title = MessageBox.ErrorQuery("Error", "Invalid score value", "OK").ToString();
             return false;
         }
-        // int u;
-        // if(!int.TryParse(this.userIdInput.Text.ToString(), out u))
-        // {
-        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
-        //     return false;
-        // }
-        // if(this.userRepo.GetById(u) == null)
-        // {
-        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
-        //     return false;
-        // }
         if(d < 1 || d > 10)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Invalid score value", "OK").ToString();
             return false;
         }
-        // int i;
-        // if(!int.TryParse(this.movieTitleInput.Text.ToString(), out i))
-        // {
-        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid movie id", "OK").ToString();
-        //     return false;
-        // }
         if(this.movieRepo.GetByTitle(this.movieTitleInput.Text.ToString()) == null)
         {
             this.Title = MessageBox.ErrorQuery("Error", "Invalid movie title", "OK").ToString();

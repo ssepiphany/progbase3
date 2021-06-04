@@ -6,7 +6,6 @@ public class ExportDialog : Dialog
     public bool canceled;
     protected ReviewRepository reviewRepository;
     protected TextField dirPathInput;
-    // private TextField userIdInput;
     protected User currentUser;
     public ExportDialog()
     {
@@ -28,19 +27,6 @@ public class ExportDialog : Dialog
         okBtn.Clicked += OnSubmit;
         this.AddButton(backBtn);
         this.AddButton(okBtn);
-
-
-        // Label userIdLabl = new Label("User id:")
-        // {
-        //     X = 6, Y = 4, Width = 10,
-        // };
-
-        // userIdInput = new TextField() 
-        // {
-        //     X = rightColumn, Y = Pos.Top(userIdLabl) , Width = Dim.Fill() - 3, 
-        // };
-
-        // this.Add(userIdInput, userIdLabl);
 
         Label dirLabel = new Label("Dir path:")
         {
@@ -120,18 +106,7 @@ public class ExportDialog : Dialog
             this.Title = MessageBox.ErrorQuery("Error", "Please, make sure to select directory", "OK").ToString();
             return false;
         }
-        // int id;
-        // if(!int.TryParse(userIdInput.Text.ToString(), out id))
-        // {
-        //     this.Title = MessageBox.ErrorQuery("Error", "Invalid user id", "OK").ToString();
-        //     return false;
-        // }
-        // user = userRepository.GetById(id);
-        // if(user == null)
-        // {
-        //     this.Title = MessageBox.ErrorQuery("Error", "User was not found", "OK").ToString();
-        //     return false;
-        // }
+        
         return true;
     }
 

@@ -21,24 +21,10 @@ public class UsersWindow : Window
     private User currentUser;
     private Label currentUsername;
     private Button createNewUser; 
+    protected string searchValue = "";
+    protected TextField searchInput;
     public UsersWindow()
     {
-    //     MenuBar menu = new MenuBar
-    //     (new MenuBarItem[] 
-    //     {
-    //        new MenuBarItem ("_File", new MenuItem [] 
-    //        {
-    //            new MenuItem ("_Export", "", OnExport),
-    //            new MenuItem ("_Import", "", OnImport),
-    //            new MenuItem ("_Exit", "", OnQuit),
-    //        }),
-    //        new MenuBarItem ("_Help", new MenuItem [] 
-    //        {
-    //            new MenuItem ("_About", "", OnAbout)
-    //        }),
-    //     });
-    //    this.Add(menu);
-
         this.Title = this.title;
 
         options = new NStack.ustring[]{"movies", "actors", "users", "my reviews"};
@@ -88,7 +74,7 @@ public class UsersWindow : Window
         this.Add(frameView);
 
 
-        createNewUser = new Button(2, 4, "Create new user");
+        createNewUser = new Button(2, 2, "Create new user");
         createNewUser.Clicked += OnCreateButtonClicked;
         this.Add(createNewUser);
 
@@ -104,12 +90,9 @@ public class UsersWindow : Window
 
         this.Add(currentUserLbl, currentUsername);
 
-        // Button backBtn = new Button()
-        // {
-        //     X = Pos.Center(), Y = Pos.Percent(98), Text = "Back",
-        // };
-        // backBtn.Clicked += OnQuit;
-        // this.Add(backBtn);
+        searchInput = new TextField(2, 4, 20, "");
+        searchInput.KeyPress += OnSearchEnter;
+        this.Add(searchInput);
     }
 
     public void SetRepositories(UserRepository userRepository, ReviewRepository reviewRepository)
@@ -123,6 +106,14 @@ public class UsersWindow : Window
         return this.title;
     }
 
+    protected void OnSearchEnter(KeyEventEventArgs args)
+    {
+        if (args.KeyEvent.Key == Key.Enter)
+        {
+            this.searchValue = this.searchInput.Text.ToString();
+            this.ShowCurrentPage();
+        }
+    }
 
     public void SetCurrentUser(User user)
     {
@@ -161,14 +152,21 @@ public class UsersWindow : Window
 
     private void ShowCurrentPage()
     {
-        bool isEmptyList = (this.repo.GetCount() == 0);
-        int totalPages = repo.GetTotalPages(pageLength);
+        int totalPages = repo.GetSearchPagesCount(searchValue, pageLength);
+        if(page > totalPages && page > 1)
+        {
+            page = totalPages;
+        }
+        bool isEmptyList = (totalPages == 0);
+        this.searchInput.Visible = !(this.repo.GetTotalPages(pageLength) == 0);
+       
         this.pageLbl.Visible = !isEmptyList;
         this.pageLbl.Text = page.ToString();
         this.totalPagesLbl.Text = totalPages.ToString();
         this.totalPagesLbl.Visible = !isEmptyList;
         this.allUsersListView.Visible = !isEmptyList;
-        this.allUsersListView.SetSource(repo.GetPage(page, pageLength));
+        this.allUsersListView.SetSource(repo.GetSearchPage(searchValue, page, pageLength));
+        
         this.emptyListLbl.Visible = isEmptyList;
         prevPageBtn.Visible = (page != 1) && (!isEmptyList);
         nextPageBtn.Visible = (page != totalPages) && (!isEmptyList);
@@ -178,6 +176,7 @@ public class UsersWindow : Window
     private void OnCreateButtonClicked()
     {
         CreateUserDialog createUserDialog = new CreateUserDialog();
+        createUserDialog.SetRepository(repo);
         Application.Run(createUserDialog);
 
         if(!createUserDialog.canceled)
@@ -186,12 +185,15 @@ public class UsersWindow : Window
             bool registered = Authentication.RegisterUser(user, repo);
             if(!registered)
             {
-                this.Title = MessageBox.ErrorQuery("Error", $"Username \"{user.login}\" already exist", "OK").ToString();
+                this.Title = MessageBox.ErrorQuery("Error", $"Username \"{user.login}\" already exists", "OK").ToString();
                 this.Title = title;
+                ShowCurrentPage();
             }
-            //allUsersListView.SetSource(repo.GetPage(page, pageLength));
-            ShowCurrentPage();
-            ProcessOpenUser(user);
+            else
+            {
+                ShowCurrentPage();
+                ProcessOpenUser(user);
+            } 
         }
     }
 
@@ -204,6 +206,7 @@ public class UsersWindow : Window
     private void ProcessOpenUser(User user)
     {
         OpenUserDialog dialog = new OpenUserDialog();
+        dialog.SetRepository(repo);
         dialog.SetUser(user);
         dialog.SetCurrentUser(this.currentUser);
 

@@ -116,6 +116,52 @@ public class ActorRepository
         return page ; 
     }
 
+    public int GetSearchPagesCount(string searchValue, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetTotalPages(pageLength);
+        }
+        if(pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT COUNT(*) FROM actors WHERE fullname LIKE '%' || $searchValue || '%'
+            OR age LIKE '%' || $searchValue || '%' "; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
+        long count = (long)command.ExecuteScalar();
+        return (int)Math.Ceiling(count / (float)pageLength) ; 
+    }
+
+    public List<Actor> GetSearchPage(string searchValue, int pageNum, int pageLength)
+    {
+        if (string.IsNullOrEmpty(searchValue))
+        {
+            return this.GetPage(pageNum, pageLength);
+        }
+        if(pageNum < 1 || pageLength < 1)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+        int offset = pageLength * (pageNum - 1);
+        List<Actor> page = new List<Actor>();
+        SqliteCommand command = connection.CreateCommand(); 
+        command.CommandText = @"SELECT * FROM actors WHERE fullname LIKE '%' || $searchValue || '%'
+            OR age LIKE '%' || $searchValue || '%' LIMIT $pageLength OFFSET $offset"; 
+        command.Parameters.AddWithValue("$searchValue" , searchValue); 
+        command.Parameters.AddWithValue("$pageLength" , pageLength) ;
+        command.Parameters.AddWithValue("$offset" , offset) ;
+        SqliteDataReader reader = command.ExecuteReader() ; 
+        while(reader.Read())
+        {
+            Actor actor = ReadActor(reader) ; 
+            page.Add(actor); 
+        }
+        reader.Close() ; 
+        return page ; 
+    }
+
     public List<Actor> GetAll()
     {
         SqliteCommand command = connection.CreateCommand(); 
